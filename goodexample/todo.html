@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://unpkg.com/d3@4"></script>
+  <script src="https://unpkg.com/d3-component@3"></script>
+  <script src="https://unpkg.com/redux@3/dist/redux.min.js"></script>
+  <style>
+    body {
+      background-color: #f2f2f2;
+    }
+    .app {
+      margin-top: 50px;
+      margin-left: 150px;
+      font-family: sans;
+    }
+    .app * {
+      font-size: 40px;
+    }
+    .todo {
+      cursor: pointer;
+      user-select: none;
+    }
+    .todo.completed {
+      text-decoration: line-through;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    
+    // A generic button component.
+    var button = d3.component("button")
+      .render(function (selection, d){
+        selection
+            .text(d.text)
+            .on("click", d.onClick);
+      });
+    
+    // A generic text input component.
+    var input = d3.component("input");
+    
+    // Displays the form that lets you add a todo.
+    var addTodo = d3.component("form")
+      .render(function (selection, d){
+        var inputNode = input(selection).node();
+        selection.call(button, {
+          text:"Add Todo",
+          onClick: function (e){
+            d.actions.addTodo(inputNode.value);
+            inputNode.value = "";
+          }
+        });
+      });
+    
+    // Displays a single entry in the todo list.
+    var todo = d3.component("li", "todo")
+    	.create(function (selection){
+        selection
+            .style("font-size", "0px")
+          .transition().duration(600)
+            .style("font-size", "40px");
+      })
+      .render(function (selection, d){
+        selection
+          	.text(d.text)
+        		.classed("completed", d.completed)
+        		.on("click", function (){
+              d3.event.preventDefault(); // Prevent navigation.
+          		d.actions.toggleTodo(d.id);
+            });
+      })
+      .destroy(function (selection){
+        return selection
+          .transition().duration(600)
+            .style("font-size", "0px");
+      })
+      .key(function (d){ return d.id; });
+    
+    // An empty <li> element with zero size.
+    // This makes the ul element fill out its size,
+    // so that the enter and exit transitions for a single <li>
+    // are smooth, and don't include an abrupt change
+    // in the position of the footer.
+    var spaceFiller = d3.component("li")
+    	.create(function (selection){
+        selection.style("font-size", "0px");
+      });
+    
+    // Displays a list of todos.
+    var todoList = d3.component("ul")
+      .render(function (selection, d){
+        var visibleTodos = d.todos.filter(function (_){
+          switch (d.currentFilter) {
+            case 'SHOW_ALL':
+            	return true;
+            case 'SHOW_COMPLETED':
+              return _.completed;
+            case 'SHOW_ACTIVE':
+              return !_.completed;
+          }
+        });
+        selection
+          	.call(todo, visibleTodos, d)
+            .call(spaceFiller);
+      });
+    
+    // Displays one of the options in the footer.
+    // This is one area where the JSX solution
+    // in the Redux example is much cleaner.
+    var filterLink = (function (){
+      var a = d3.component("a")
+            .render(function (selection, d){
+              selection
+                  .attr("href", "#")
+                  .text(d.text)
+                  .on("click", function (){
+                    d.onClick();
+                  });
+            }),
+          span = d3.component("span")
+            .render(function (selection, d){
+              selection.text(d.text);
+            }),
+          comma = d3.component("span", "comma")
+      			.create(function (selection){
+              selection.text(", ");
+            })
+      return d3.component("span")
+        .render(function (selection, d){
+          selection
+            .call((d.filter === d.currentFilter ? span : a), {
+              text: d.text,
+              onClick: function (){
+                d.actions.setVisibilityFilter(d.filter);
+              }
+            })
+            .call(comma, d.useComma || []);
+        });
+    }());
+    
+    // Displays the visibility filter controls.
+    var footer = (function (){
+      var data = [
+        { text: "All", filter: "SHOW_ALL", useComma: true },
+        { text: "Active", filter: "SHOW_ACTIVE", useComma: true },
+        { text: "Completed", filter: "SHOW_COMPLETED" }
+      ];
+      return d3.component("span")
+        .render(function (selection, d){
+          selection
+              .text("Show: ")
+              .call(filterLink, data, d);
+        });
+    }());
+    
+    // The top-level app component.
+    var app = d3.component("div")
+      .create(function (selection){
+        selection.attr("class", "app");
+      })
+      .render(function (selection, d){
+        selection
+            .call(addTodo, d)
+        		.call(todoList, d)
+            .call(footer, d);
+      });
+    
+    function main(){
+      var store = Redux.createStore(reducer),
+          actions = actionsFromDispatch(store.dispatch);
+      
+      render();
+      store.subscribe(render);
+      
+      function reducer (state, action){
+        state = state || {
+          todos: [],
+          currentFilter: "SHOW_ALL",
+        };
+        switch (action.type) {
+          case "ADD_TODO":
+              return Object.assign({}, state, {
+              todos: state.todos.concat({
+                text: action.text,
+                id: action.id,
+                completed: false
+              })
+            });
+          case "TOGGLE_TODO":
+            return Object.assign({}, state, {
+              todos: state.todos.map(function (d){
+                if(d.id === action.id){
+                  return Object.assign({}, d, {
+                    completed: !d.completed
+                  });
+                }
+                return d;
+              })
+            });
+          case "SET_VISIBILITY_FILTER":
+            return Object.assign({}, state, {
+              currentFilter: action.filter
+            });
+          default:
+            return state;
+        }
+      }
+
+      function actionsFromDispatch(dispatch){
+        var nextTodoId = 0;
+        return {
+          addTodo: function (text){
+            dispatch({
+              type: "ADD_TODO",
+              id: nextTodoId++,
+              text: text
+            });
+          },
+          toggleTodo: function (id){
+            dispatch({
+              type: "TOGGLE_TODO",
+              id: id
+            });
+          },
+          setVisibilityFilter: function (filter){
+            dispatch({
+              type: "SET_VISIBILITY_FILTER",
+              filter: filter
+            });
+          }
+        }
+      }
+
+      function render(){
+        d3.select("body").call(app, store.getState(), {
+          actions: actions
+        });
+      }
+    }
+    main();
+  </script>
+</body>
