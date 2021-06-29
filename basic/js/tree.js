@@ -12,12 +12,12 @@ let stratify = d3.stratify()
 d3.csv("/basic/data/flare.csv", function(error, data) {
   if (error) throw error;
     formData(data);
-    setTimeout(() => {
-      data.push({
-        id: 'flare.analytics.cluster.keyvalwebsite',
-        value: 3
-      });
-    }, 2000);
+    // setTimeout(() => {
+    //   data.push({
+    //     id: 'flare.analytics.cluster.keyvalwebsite',
+    //     value: 3
+    //   });
+    // }, 2000);
 });
 
 const formData = (data) =>{
