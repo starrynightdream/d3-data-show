@@ -32,13 +32,13 @@ let linear = d3.scaleLinear()
 
 console.log( linear(2));
 
-let from = [0,1,2,3,4];
-let to = ['yellow', 'green', 'blue', 'white', 'gray'];
+// let from = [0,1,2,3,4,5];
+let to = ['gray', 'yellow', 'green', 'blue', 'white', 'skyblue'];
 let ordinal = d3.scaleOrdinal()
-  .domain(from)
+  // .domain(from)
   .range(to);
 
-console.log( ordinal(1));
+// console.log( ordinal(1));
 
 // let axis = d3.axisBottom(linear);
 
@@ -81,7 +81,7 @@ console.log( ordinal(1));
 //   .attr('fill', (d)=>{return ordinal(d[0])})
 //   .attr('r', 40);
 let outerRadius = 150;
-let innerRadius = 0;
+let innerRadius = 10;
 
 let pieData = [30, 10, 10, 20, 25, 5];
 let pie = d3.pie()
@@ -95,11 +95,46 @@ let arcs = svg.selectAll('g')
   .data(toPieData)
   .enter()
   .append('g')
-  .attr('transform', `translate(${(window.innerWidth * scane /2)}, ${(window.innerHeight* scane /2)})`)
-arcs
+  .attr('transform', 
+  `translate(${(window.innerWidth * scane /2)}, 
+  ${(window.innerHeight* scane /2)})`)
+
+let pathGroups = arcs
+  .append('g');
+
+pathGroups
+  .attr('transform', `scale(0,0)`)
+  .transition(3000)
+  .ease(d3.easeCubic)
+  .attr('transform', `scale(1.1,1.1)`)
+  .transition(500)
+  .ease(d3.easeExp)
+  .attr('transform', `scale(1,1)`)
+
+let paths = pathGroups
   .append('path')
   .attr('color', 'white')
   .attr('d', (d) =>{
     return arc(d);
   })
-  .attr('fill', 'blue')
+
+paths
+  .attr('fill', (d,i) =>{return ordinal(i)})
+  .attr('transform', `rotate(170)`)
+  .transition(5000)
+  .ease(d3.easeCubic)
+  .attr('transform', `rotate(0)`)
+
+paths
+  .on('mouseover', function(d, i, n) {
+    d3.select(this)
+      .transition(300)
+      .ease(d3.easeExp)
+      .attr('transform', 'scale(1.1,1.1)')
+  })
+  .on('mouseout', function(d, i, n) {
+    d3.select(this)
+      .transition(300)
+      .ease(d3.easeExp)
+      .attr('transform', 'scale(1,1)')
+  })
