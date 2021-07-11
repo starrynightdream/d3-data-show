@@ -16,21 +16,22 @@
 //   .merge(circle) // ENTER + UPDATE
 //     .attr("r", 25)
 //     .style("stroke", "black");
+
 const scane = 0.8;
 const svg = d3.select('svg');
 
 svg.attr('width', window.innerWidth * scane)
   .attr('height', window.innerHeight * scane)
 
-let dataset = [1,2,2,2,-1,0,2,2,2];
+let dataset = [1, 2, 2, 2, -1, 0, 2, 2, 2];
 let min = d3.min(dataset);
 let max = d3.max(dataset);
 
 let linear = d3.scaleLinear()
-    .domain([min, max])
-    .range([0, 300]);
+  .domain([min, max])
+  .range([0, 300]);
 
-console.log( linear(2));
+// console.log(linear(2));
 
 // let from = [0,1,2,3,4,5];
 let to = ['gray', 'yellow', 'green', 'blue', 'white', 'skyblue'];
@@ -82,8 +83,13 @@ let ordinal = d3.scaleOrdinal()
 //   .attr('r', 40);
 let outerRadius = 150;
 let innerRadius = 10;
+let margin = {left:20, top:20}
 
 let pieData = [30, 10, 10, 20, 25, 5];
+let pieTitle = ['A', 'B', 'C', 'D'];
+let pieInfo = ['aaaaaaaaaaa', 'bbbbbbbbbbb', 'ccccccccccc', 'ddddddddddd'];
+
+
 let pie = d3.pie()
 let toPieData = pie(pieData);
 
@@ -95,9 +101,9 @@ let arcs = svg.selectAll('g')
   .data(toPieData)
   .enter()
   .append('g')
-  .attr('transform', 
-  `translate(${(window.innerWidth * scane /2)}, 
-  ${(window.innerHeight* scane /2)})`)
+  .attr('transform',
+    `translate(${margin.left + outerRadius}, 
+  ${margin.top + outerRadius})`)
 
 let pathGroups = arcs
   .append('g');
@@ -114,25 +120,27 @@ pathGroups
 let paths = pathGroups
   .append('path')
   .attr('color', 'white')
-  .attr('d', (d) =>{
+  .attr('d', (d) => {
     return arc(d);
   })
 
 paths
-  .attr('fill', (d,i) =>{return ordinal(i)})
+  .attr('fill', (d, i) => {
+    return ordinal(i)
+  })
   .attr('transform', `rotate(170)`)
   .transition(5000)
   .ease(d3.easeCubic)
   .attr('transform', `rotate(0)`)
 
 paths
-  .on('mouseover', function(d, i, n) {
+  .on('mouseover', function (d, i, n) {
     d3.select(this)
       .transition(300)
       .ease(d3.easeExp)
       .attr('transform', 'scale(1.1,1.1)')
   })
-  .on('mouseout', function(d, i, n) {
+  .on('mouseout', function (d, i, n) {
     d3.select(this)
       .transition(300)
       .ease(d3.easeExp)
