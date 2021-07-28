@@ -68,5 +68,5 @@ createPie = ({
                 .transition(300)
                 .ease(d3.easeExp)
                 .attr('transform', 'scale(1,1)')
-        })
+        });
 }
