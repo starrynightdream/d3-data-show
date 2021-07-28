@@ -6,7 +6,7 @@ window.onload = () =>{
     fastD3.SVG(svg);
     console.log(fastD3);
 
-    let his = fastD3.histogram(getData());
+    let his = fastD3.column(getData());
 }
 
 function getData() {

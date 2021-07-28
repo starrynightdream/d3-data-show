@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-07-28 11:19:00
+ * @Last Modified time: 2021-07-28 12:18:46
  */
 // 前置依赖是d3.js 请在使用前导入。
 const fastD3 = {
@@ -102,9 +102,20 @@ fastD3.histogram = (data, param = fastD3.histogramDefault) => {
 };
 
 fastD3.columnmDefault = {
-    width : null,
-    height : null,
-    spacePerColumn : 0.1,
+    widthPercent: 1,
+    heightPercent: 1,
+    spacePerColumn: 0.1,
+    topSpacePerHeight: 0.05,
+    lineHeight: 20,
+    xOffset: 0,
+    yOffset: 0,
+    enterDuration: 2000,
+    cName: (name) => {
+        return [name];
+    },
+    cValue: (value) => {
+        return [value];
+    },
 }
 
 fastD3.column = (data, param = fastD3.columnmDefault) => {
@@ -113,34 +124,64 @@ fastD3.column = (data, param = fastD3.columnmDefault) => {
         console.error(fastD3.error())
     }
     // 数据处理部分
-    let width = 0;
-    if ( !(param && param.width)) {
-        width = fastD3.width;
-    } else {
-        width = param.width;
-    }
+    let width = fastD3.width * param.widthPercent;
 
-    let height= 0;
-    if ( !(param && param.height)) {
-        height = fastD3.height;
-    } else {
-        height = param.height;
-    }
+    let height = fastD3.height * param.heightPercent;
 
-    let min = 0;
-    let max = 0;
+    // todo : 改为数组中最大最小值
+    let values = data.map((item) => {
+        return item.value
+    });
+    let min = Math.min(...values); // 考虑是否可以使用最小值以减少占用空间
+    let max = Math.max(...values);
 
     let ySacan = d3.scaleLinear()
-        .domain([min, max])
-        .range([0, height]);
+        .domain([0, max])
+        .range([0, height * (1 - param.topSpacePerHeight)]);
 
     let spacePerColumn = param.spacePerColumn ? param.spacePerColumn : fastD3.columnmDefault.spacePerColumn;
     let columWidth = width / ((1 + spacePerColumn) * data.length + spacePerColumn);
 
     let formData = [];
-    data.forEach( (data) =>{
+    data.forEach((d, i) => {
 
+        formData.push({
+            name: param.cName(d.name),
+            value: param.cValue(d.value),
+            width: columWidth,
+            height: ySacan(d.value),
+            x: i * (spacePerColumn + 1) * columWidth + spacePerColumn * columWidth,
+            y: height - ySacan(d.value)
+        });
     });
+
     // 绘制部分
+    let colRoot = d3.select(fastD3._svg).append('g');
+    // todo: 添加css样式的钩子
+    let allG = colRoot.selectAll('g')
+        .data(formData)
+        .enter()
+        .append('g');
+
+    allG.append('rect')
+        .attr('width', d => {
+            return d.width
+        })
+        .attr('height', 0)
+        .attr('x', d => {
+            return d.x
+        })
+        .attr('y', d => {
+            return height
+        })
+        .attr('fill', 'blue')
+        .transition(param.enterDuration)
+        .ease(d3.easeQuad)
+        .attr('height', d => {
+            return d.height
+        })
+        .attr('y', d => {
+            return d.y
+        });
     // 结构处理
 }
