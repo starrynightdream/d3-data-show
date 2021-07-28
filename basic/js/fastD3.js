@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-07-28 12:18:46
+ * @Last Modified time: 2021-07-28 20:31:59
  */
 // 前置依赖是d3.js 请在使用前导入。
 const fastD3 = {
@@ -23,9 +23,10 @@ const fastD3 = {
 
 // 图表类模板
 const Chart = {
-    data: (data) => {},
+    data: null,
+    d3r: null,
+    cData: (data) => {},
     param: (param) => {},
-    d3r: null
 }
 
 fastD3.error = () => {
@@ -110,11 +111,45 @@ fastD3.columnmDefault = {
     xOffset: 0,
     yOffset: 0,
     enterDuration: 2000,
-    cName: (name) => {
+    changeDuration: 1000,
+    transitionType :d3.easeQuad,
+    rectReadyInit: {},
+    rectAfterInit: {},
+    nameReadyInit: {},
+    nameAfterInit: {},
+    valueReadyInit: {},
+    valueAfterInit: {},
+    sort: false,
+    color (d, i, arr) {
+        return `hsl(${i/arr.length * 360}, 100%, 80%)`;
+    },
+    cName (name) {
         return [name];
     },
-    cValue: (value) => {
+    cValue (value) {
         return [value];
+    },
+    cData (data, root) {
+        // todo: 实现默认的变化选项
+        // 解析结构
+        if (! data){
+            console.error('数据为空, 如果希望清空版面请传入空数组');
+            return;
+        }
+
+        if (this.sort > 0){
+            // todo 升序处理数组
+        } else if (this.sort < 0) {
+            // todo 降序处理数组
+        } else {
+            // 不做变化
+        }
+        let names = data.map( (v)=>{return v.name;});
+        let values = data.map( (v) =>{return v.value;});
+        let rects = root.selectAll('g').select('rect');
+        // 处理变化后的新数据
+        // 绘制变化于应用过渡
+        // 处理结构
     },
 }
 
@@ -128,7 +163,6 @@ fastD3.column = (data, param = fastD3.columnmDefault) => {
 
     let height = fastD3.height * param.heightPercent;
 
-    // todo : 改为数组中最大最小值
     let values = data.map((item) => {
         return item.value
     });
@@ -163,7 +197,9 @@ fastD3.column = (data, param = fastD3.columnmDefault) => {
         .enter()
         .append('g');
 
-    allG.append('rect')
+    let rects = allG.append('rect');
+
+    rects
         .attr('width', d => {
             return d.width
         })
@@ -174,14 +210,34 @@ fastD3.column = (data, param = fastD3.columnmDefault) => {
         .attr('y', d => {
             return height
         })
-        .attr('fill', 'blue')
+        .attr('fill',(d, i, arr) =>{ return param.color(d, i, arr);})
+
+    for (let key of Object.keys(param.rectReadyInit)) {
+        rects.attr(key, param.rectReadyInit[key]);
+    }
+
+    let afterRects = rects
         .transition(param.enterDuration)
         .ease(d3.easeQuad)
         .attr('height', d => {
-            return d.height
+            return d.height;
         })
         .attr('y', d => {
-            return d.y
+            return d.y;
         });
+
+    for (let key of Object.keys(param.rectAfterInit)) {
+        afterRects.attr(key, param.rectAfterInit[key]);
+    }
+
     // 结构处理
+    let aColum = {...Chart};
+    aColum.data = data;
+    aColum.cData = (_data) =>{
+        param.cData(_data, aColum.d3r);
+    };
+    aColum.param = param;
+    aColum.d3r = colRoot;
+
+    return aColum;
 }

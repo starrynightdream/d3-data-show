@@ -7,6 +7,10 @@ window.onload = () =>{
     console.log(fastD3);
 
     let his = fastD3.column(getData());
+
+    // setTimeout(() => {
+    //     his.cData();
+    // }, 3000);
 }
 
 function getData() {
