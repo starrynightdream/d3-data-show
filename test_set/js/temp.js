@@ -8,9 +8,28 @@ window.onload = () =>{
 
     let his = fastD3.column(getData());
 
-    // setTimeout(() => {
-    //     his.cData();
-    // }, 3000);
+    setTimeout(() => {
+        let d = getData();
+        d.splice(2,1);
+        d.push({
+            name: 'Change',
+            value: 10
+        });
+        d.push({
+            name: 'Change1',
+            value: 10
+        });
+        d.push({
+            name: 'Change2',
+            value: 10
+        });
+        d.push({
+            name: 'Change3',
+            value: 10
+        });
+        d[1].value = 2;
+        his.cData(d);
+    }, 2000);
 }
 
 function getData() {
