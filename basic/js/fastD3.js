@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-07-29 22:32:37
+ * @Last Modified time: 2021-07-29 23:52:18
  */
 // 前置依赖是d3.js 请在使用前导入。
 const fastD3 = {
@@ -11,21 +11,21 @@ const fastD3 = {
     error: () => {},
     width: 0,
     height: 0,
-    SVG (svg) {},
-    check () {},
-    id : 1,
-    onlyId () {},
+    SVG(svg) {},
+    check() {},
+    id: 1,
+    onlyId() {},
     pieDefault: {},
-    pie (data, param) {},
+    pie(data, param) {},
     histogramDefault: {},
-    histogram (data, param) {},
+    histogram(data, param) {},
     columnmDefault: {},
-    column (data, param) {},
+    column(data, param) {},
 };
 
 // 图表类模板
 const Chart = {
-    _id : '',
+    _id: '',
     data: null,
     d3r: null,
     param: null,
@@ -71,7 +71,7 @@ fastD3.check = () => {
     return hasSvg;
 }
 
-fastD3.onlyId =function ()  {
+fastD3.onlyId = function () {
     return `chart${this.id++}`;
 }
 
@@ -149,7 +149,7 @@ fastD3.columnmDefault = {
         });
         let min = Math.min(...values); // 考虑是否可以使用最小值以减少占用空间
         let max = Math.max(...values);
-        let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight) ;
+        let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight);
         let chartBottom = height * (1 - this.bottomSpacePerHeight);
 
         let ySacan = d3.scaleLinear()
@@ -168,7 +168,7 @@ fastD3.columnmDefault = {
                 width: columWidth,
                 height: ySacan(d.value),
                 x: i * (spacePerColumn + 1) * columWidth + spacePerColumn * columWidth,
-                y: (height  - ySacan(d.value) - that.topSpacePerHeight * height)
+                y: (height - ySacan(d.value) - that.topSpacePerHeight * height)
             });
         });
         return [width, height, formData, chartBottom];
@@ -212,22 +212,32 @@ fastD3.columnmDefault = {
         });
 
         // 绘制变化同时应用过渡
-        let addG = groups.data(formData, (d) =>{return d.name})
+        let addG = groups.data(formData, (d) => {
+                return d.name
+            })
             .enter()
             .append('g')
             .attr('class', 'fastD3ColumItem');
-        
+
         let nameG = addG.append('text')
             .text('test')
-            .attr('x', d=>{return d.x + d.width/2;})
-            .attr('y', d=>{return chartBottom+ this.lineHeight; })
+            .attr('x', d => {
+                return d.x + d.width / 2;
+            })
+            .attr('y', d => {
+                return chartBottom + this.lineHeight;
+            })
             .attr('fill', 'white')
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
-        
+
         let valueG = addG.append('g').append('text')
             .text('value')
-            .attr('x', d=>{return d.x + d.width/2;})
-            .attr('y', d=>{return chartBottom - d.height - that.lineHeight; })
+            .attr('x', d => {
+                return d.x + d.width / 2;
+            })
+            .attr('y', d => {
+                return chartBottom - d.height - that.lineHeight;
+            })
             .attr('fill', 'white')
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
@@ -274,22 +284,38 @@ fastD3.columnmDefault = {
                 selfSelector.select('text')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
-                    .attr('x', d=>{return d.x + d.width/2;})
-                    .attr('y', d=>{return chartBottom+ that.lineHeight; });
+                    .attr('x', d => {
+                        return d.x + d.width / 2;
+                    })
+                    .attr('y', d => {
+                        return chartBottom + that.lineHeight;
+                    });
 
                 selfSelector.select('g').select('text')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
-                    .attr('x', d=>{return d.x + d.width/2;})
-                    .attr('y', d=>{return chartBottom - d.height - that.lineHeight; });
+                    .attr('x', d => {
+                        return d.x + d.width / 2;
+                    })
+                    .attr('y', d => {
+                        return chartBottom - d.height - that.lineHeight;
+                    });
 
                 selfSelector.select('rect')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
-                    .attr('width', (d) =>{return d.width;})
-                    .attr('height', (d) =>{return d.height;})
-                    .attr('x', (d) =>{return d.x;})
-                    .attr('y', (d) =>{return d.y;});
+                    .attr('width', (d) => {
+                        return d.width;
+                    })
+                    .attr('height', (d) => {
+                        return d.height;
+                    })
+                    .attr('x', (d) => {
+                        return d.x;
+                    })
+                    .attr('y', (d) => {
+                        return d.y;
+                    });
 
             } else {
                 // 不再存在的
