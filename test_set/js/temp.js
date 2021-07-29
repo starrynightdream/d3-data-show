@@ -30,6 +30,10 @@ window.onload = () =>{
         d[1].value = 2;
         his.cData(d);
     }, 2000);
+
+    setTimeout(() => {
+        // his.cData([]);
+    }, 3000);
 }
 
 function getData() {
