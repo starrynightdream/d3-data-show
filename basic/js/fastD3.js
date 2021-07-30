@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-07-29 23:52:18
+ * @Last Modified time: 2021-07-30 09:47:03
  */
 // 前置依赖是d3.js 请在使用前导入。
 const fastD3 = {
@@ -113,7 +113,7 @@ fastD3.columnmDefault = {
     widthPercent: 1,
     heightPercent: 1,
     spacePerColumn: 0.1,
-    topSpacePerHeight: 0.05,
+    topSpacePerHeight: 0.07,
     bottomSpacePerHeight: 0.05,
     lineHeight: 20,
     xOffset: 0,
@@ -220,7 +220,15 @@ fastD3.columnmDefault = {
             .attr('class', 'fastD3ColumItem');
 
         let nameG = addG.append('text')
-            .text('test')
+            .attr('',function (d) {
+                let selfSelector = d3.select(this);
+                if (typeof d.name === 'object'){
+                    // 添加文字换行
+                } else {
+                    // 正经文字展示
+                    selfSelector.text(d.name);
+                }
+            })
             .attr('x', d => {
                 return d.x + d.width / 2;
             })
@@ -231,7 +239,15 @@ fastD3.columnmDefault = {
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
         let valueG = addG.append('g').append('text')
-            .text('value')
+            .attr('',function (d) {
+                let selfSelector = d3.select(this);
+                if (typeof d.value === 'object'){
+                    // 添加文字换行
+                } else {
+                    // 正经文字展示
+                    selfSelector.text(d.value);
+                }
+            })
             .attr('x', d => {
                 return d.x + d.width / 2;
             })
