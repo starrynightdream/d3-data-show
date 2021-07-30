@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-07-30 09:47:03
+ * @Last Modified time: 2021-07-30 09:55:09
  */
 // 前置依赖是d3.js 请在使用前导入。
 const fastD3 = {
@@ -220,9 +220,9 @@ fastD3.columnmDefault = {
             .attr('class', 'fastD3ColumItem');
 
         let nameG = addG.append('text')
-            .attr('',function (d) {
+            .attr('', function (d) {
                 let selfSelector = d3.select(this);
-                if (typeof d.name === 'object'){
+                if (typeof d.name === 'object') {
                     // 添加文字换行
                 } else {
                     // 正经文字展示
@@ -239,9 +239,9 @@ fastD3.columnmDefault = {
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
         let valueG = addG.append('g').append('text')
-            .attr('',function (d) {
+            .attr('', function (d) {
                 let selfSelector = d3.select(this);
-                if (typeof d.value === 'object'){
+                if (typeof d.value === 'object') {
                     // 添加文字换行
                 } else {
                     // 正经文字展示
