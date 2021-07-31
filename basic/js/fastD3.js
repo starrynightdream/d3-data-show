@@ -2,25 +2,25 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-07-30 09:55:09
+ * @Last Modified time: 2021-08-01 00:18:24
  */
 // 前置依赖是d3.js 请在使用前导入。
+// 在其它地方更新了但未推送的变更有
+/** 
+ * 添加字体颜色函数的设定
+ * 使用es6实现的导入d3与导出fastD3
+ */
+
 const fastD3 = {
     _svg: null,
     _errStack: [],
-    error: () => {},
+    error() {},
     width: 0,
     height: 0,
     SVG(svg) {},
     check() {},
     id: 1,
     onlyId() {},
-    pieDefault: {},
-    pie(data, param) {},
-    histogramDefault: {},
-    histogram(data, param) {},
-    columnmDefault: {},
-    column(data, param) {},
 };
 
 // 图表类模板
@@ -32,7 +32,7 @@ const Chart = {
     cData: (data) => {},
 }
 
-fastD3.error = () => {
+fastD3.error = function () {
     let ers = '';
 
     fastD3._errStack.forEach((val) => {
@@ -47,13 +47,13 @@ fastD3.error = () => {
  * @param {node} svg svg面板节点
  * @returns 设置后的面板节点
  */
-fastD3.SVG = (svg) => {
+fastD3.SVG = function (svg, width, height) {
 
     if (svg == undefined) {
         return fastD3._svg;
     } else {
-        fastD3.width = svg.width.baseVal.value;
-        fastD3.height = svg.height.baseVal.value;
+        fastD3.width = width || svg.width.baseVal.value;
+        fastD3.height = height || svg.height.baseVal.value;
         return fastD3._svg = svg;
     }
 };
@@ -62,7 +62,7 @@ fastD3.SVG = (svg) => {
  * 确认fastD3 设定正确
  * @returns 是否成功
  */
-fastD3.check = () => {
+fastD3.check = function () {
     let hasSvg = fastD3._svg != null && fastD3._svg != undefined;
     if (!hasSvg) {
         fastD3._errStack.push('未完成svg面板设置');
@@ -109,17 +109,19 @@ fastD3.histogram = (data, param = fastD3.histogramDefault) => {
     // 结构处理
 };
 
-fastD3.columnmDefault = {
+fastD3.columnDefault = {
     widthPercent: 1,
     heightPercent: 1,
     spacePerColumn: 0.1,
     topSpacePerHeight: 0.07,
     bottomSpacePerHeight: 0.05,
     lineHeight: 20,
+    fontSize: 20,
     xOffset: 0,
     yOffset: 0,
     enterDuration: 2000,
     changeDuration: 1000,
+    needLine : false,
     enterType: d3.easeQuad,
     changeType: d3.easeQuad,
     rectReadyInit: {},
@@ -128,7 +130,10 @@ fastD3.columnmDefault = {
     nameAfterInit: {},
     valueReadyInit: {},
     valueAfterInit: {},
-    sort: false,
+    sort: null,
+    fontColor() {
+        return 'black';
+    },
     color(d, i, arr) {
         return `hsl(${i/arr.length * 360}, 100%, 80%)`;
     },
@@ -141,8 +146,10 @@ fastD3.columnmDefault = {
     formData(data) {
         let that = this;
         let width = fastD3.width * this.widthPercent;
-
         let height = fastD3.height * this.heightPercent;
+
+        let xoff = fastD3.width * this.xOffset;
+        let yoff = fastD3.height * this.yOffset;
 
         let values = data.map((item) => {
             return item.value
@@ -150,7 +157,7 @@ fastD3.columnmDefault = {
         let min = Math.min(...values); // 考虑是否可以使用最小值以减少占用空间
         let max = Math.max(...values);
         let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight);
-        let chartBottom = height * (1 - this.bottomSpacePerHeight);
+        let chartBottom = height * (1 - this.bottomSpacePerHeight - this.yOffset);
 
         let ySacan = d3.scaleLinear()
             .domain([0, max])
@@ -167,11 +174,15 @@ fastD3.columnmDefault = {
                 value: this.cValue(d.value),
                 width: columWidth,
                 height: ySacan(d.value),
-                x: i * (spacePerColumn + 1) * columWidth + spacePerColumn * columWidth,
-                y: (height - ySacan(d.value) - that.topSpacePerHeight * height)
+                x: i * (spacePerColumn + 1) *
+                    columWidth + spacePerColumn * columWidth +
+                    xoff,
+                y: (height - ySacan(d.value) -
+                    that.topSpacePerHeight * height +
+                    yoff)
             });
         });
-        return [width, height, formData, chartBottom];
+        return [width, height, formData, chartBottom, xoff, yoff];
     },
     cData(data, chart) {
         // 解析结构
@@ -180,12 +191,8 @@ fastD3.columnmDefault = {
             return;
         }
 
-        if (this.sort > 0) {
-            // todo 升序处理数组
-        } else if (this.sort < 0) {
-            // todo 降序处理数组
-        } else {
-            // 不做变化
+        if (this.sort) {
+            data.sort(this.sort);
         }
         let that = this;
         let names = data.map((v) => {
@@ -194,7 +201,7 @@ fastD3.columnmDefault = {
         let groups = chart.d3r.selectAll('.fastD3ColumItem');
         // let groups = d3.selectAll(`#${chart._id}>g`);
         // 处理变化后的新数据
-        let [width, height, formData, chartBottom] = this.formData(data);
+        let [width, height, formData, chartBottom, xoff, yoff] = this.formData(data);
         let nameToData = new Map();
         formData.forEach((d) => {
 
@@ -233,9 +240,12 @@ fastD3.columnmDefault = {
                 return d.x + d.width / 2;
             })
             .attr('y', d => {
-                return chartBottom + this.lineHeight;
+                return d.y + d.height + this.lineHeight;
             })
-            .attr('fill', 'white')
+            .attr('font-size', this.fontSize)
+            .attr('fill', (d, i, arr) => {
+                return this.fontColor(d, i, arr);
+            })
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
         let valueG = addG.append('g').append('text')
@@ -248,13 +258,16 @@ fastD3.columnmDefault = {
                     selfSelector.text(d.value);
                 }
             })
+            .attr('font-size', this.fontSize)
             .attr('x', d => {
                 return d.x + d.width / 2;
             })
             .attr('y', d => {
-                return chartBottom - d.height - that.lineHeight;
+                return d.y - that.lineHeight;
             })
-            .attr('fill', 'white')
+            .attr('fill', (d, i, arr) => {
+                return this.fontColor(d, i, arr);
+            })
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
         let rects = addG.append('rect')
@@ -266,7 +279,7 @@ fastD3.columnmDefault = {
                 return d.x;
             })
             .attr('y', d => {
-                return chartBottom;
+                return d.height + d.y;
             })
             .attr('fill', (d, i, arr) => {
                 return this.color(d, i, arr);
@@ -300,21 +313,23 @@ fastD3.columnmDefault = {
                 selfSelector.select('text')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
+                    .text(d => d.name)
                     .attr('x', d => {
                         return d.x + d.width / 2;
                     })
                     .attr('y', d => {
-                        return chartBottom + that.lineHeight;
+                        return d.y + d.height + that.lineHeight;
                     });
 
                 selfSelector.select('g').select('text')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
+                    .text(d => d.value)
                     .attr('x', d => {
                         return d.x + d.width / 2;
                     })
                     .attr('y', d => {
-                        return chartBottom - d.height - that.lineHeight;
+                        return d.y - that.lineHeight;
                     });
 
                 selfSelector.select('rect')
@@ -350,6 +365,20 @@ fastD3.columnmDefault = {
             }
         });
 
+        let nPath = '';
+        formData.forEach( (d)=>{
+            nPath += `L${d.x + d.width/2} ${d.y} `;
+        });
+
+        nPath = nPath.replace('L', 'M');
+        let line = chart.d3r.select('path');
+
+        line
+            .transition(this.changeDuration + 10)
+            .ease(this.changeType)
+            .attr('d', nPath);
+        line.text('reflesh');
+
         // 处理结构
         chart.data = data;
         chart.param = this;
@@ -357,7 +386,7 @@ fastD3.columnmDefault = {
     },
 }
 
-fastD3.column = (data, param = fastD3.columnmDefault) => {
+fastD3.column = (data, param = fastD3.columnDefault) => {
 
     if (!fastD3.check()) {
         console.error(fastD3.error());
@@ -368,6 +397,9 @@ fastD3.column = (data, param = fastD3.columnmDefault) => {
     let colRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();
     colRoot.attr('id', oid);
+    colRoot.append('path')
+        .attr('stroke-width', 2)
+        .attr('stroke', 'white');
     // 结构处理
     let aColum = {
         ...Chart

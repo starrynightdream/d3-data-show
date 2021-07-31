@@ -4,9 +4,21 @@ window.onload = () =>{
     svg.setAttribute('height', 500);
 
     fastD3.SVG(svg);
-    console.log(fastD3);
 
-    let his = fastD3.column(getData());
+    let param = {...fastD3.columnDefault};
+    param.widthPercent = 0.5
+    param.heightPercent = 0.5
+    param.xOffset = 0.25;
+    param.yOffset = 0.25;
+    param.fontSize = 10;
+    param.lineHeight = 10;
+    param.fontColor = (d, i, arr) =>{
+        return `rgb(${i * 100}, 255, 255)`;
+    }
+    // param.sort = (a,b) =>{
+    //     return b.value - a.value;
+    // }
+    let his = fastD3.column(getData(), param);
 
     setTimeout(() => {
         let d = getData();
