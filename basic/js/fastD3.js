@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-01 10:45:35
+ * @Last Modified time: 2021-08-02 00:19:02
  */
 // 前置依赖是d3.js 请在使用前导入。
 // 在其它地方更新了但未推送的变更有
@@ -75,6 +75,44 @@ fastD3.onlyId = function () {
     return `chart${this.id++}`;
 }
 
+fastD3._formPercent = function (data, getter = (d) => {
+    return d._value
+}, setter = (d, start, end) => {
+    d.percent = start - end;
+    d.start = start;
+    d.end = end;
+}) {
+    // 根据传入的数据计算比例
+    let sum = 0;
+    data.forEach((d) => {
+        sum += getter(d);
+    });
+    let recodeDeg = 0;
+    if (sum === 0) sum = 1;
+    data.forEach((d) => {
+        let deg = getter(d) / sum;
+        setter(d, recodeDeg, recodeDeg + deg);
+    });
+}
+
+fastD3._arcDraw = function (outter, intter = 0, getter = (d)=>{return d;}) {
+    // 返回根据数据生成路径的对象
+    return (d) =>{
+        d = getter(d);
+        // 根据对象生成路径t
+        let ang = Math.PI * 2 * d.precent;
+        let ans = `M${Math.sin(ang) * intter} ${Math.cos(ang) * intter}`;
+        ans += ` A ${intter} ${intter} 0 0 ${d.precent > 0.5 ? 1 : 0} 1 0 ${outter - intter}`; // 内弧形
+        ans += ` L 0 0`; // 左侧
+        ans += ` A ${outter} ${outter} 0 1 ${d.precent > 0.5 ? 1 : 0} 1 0 ` +
+        `${Math.sin(ang) * intter} ${Math.cos(ang) * intter}`; // 外弧形
+        ans += ' Z';
+
+        // todo: 应用线路绘制
+        return ans;
+    }
+}
+
 fastD3.pieDefault = {
     widthPercent: 1,
     heightPercent: 1,
@@ -85,7 +123,7 @@ fastD3.pieDefault = {
     xOffset: 0,
     yOffset: 0,
     outerRadiusPerSize: 1,
-    innerRadiusPerOuter: 0, 
+    innerRadiusPerOuter: 0,
     enterDuration: 2000,
     changeDuration: 1000,
     enterType: d3.easeQuad,
@@ -127,12 +165,17 @@ fastD3.pieDefault = {
 
         let pie = d3.pie();
         let tdata = pie(values);
-        console.log(tdata);
         let outer = Math.min(width, chartHeight) * this.outerRadiusPerSize;
         let inner = outer * this.innerRadiusPerOuter;
         let arc = d3.arc()
             .innerRadius(inner)
             .outerRadius(outer);
+
+        /**
+         * M1.3471114790620884e-14,-219.99999999999997
+         * A219.99999999999997,219.99999999999997,0,0,1,210.96336692134878,62.40559123354527
+         * L0,0Z
+         */
 
         let formData = [];
         data.forEach((d, i) => {
@@ -140,11 +183,13 @@ fastD3.pieDefault = {
             formData.push({
                 name: this.cName(d.name),
                 value: this.cValue(d.value),
-                d: arc(tdata[i]), 
-                x:0,
-                y:0,
+                _value: d.value,
+                d: arc(tdata[i]),
+                x: 0,
+                y: 0,
             });
         });
+        fastD3._formPercent(data);
         return [width, height, formData, chartBottom, xoff, yoff];
     },
     cData(data, chart) {
@@ -161,7 +206,7 @@ fastD3.pieDefault = {
         let names = data.map((v) => {
             return v.name;
         });
-        let groups = chart.d3r.selectAll('.fastD3ColumItem');
+        let groups = chart.d3r.selectAll('.fastD3PieItem');
         // let groups = d3.selectAll(`#${chart._id}>g`);
         // 处理变化后的新数据
         let [width, height, formData, chartBottom, xoff, yoff] = this.formData(data);
@@ -187,22 +232,32 @@ fastD3.pieDefault = {
             })
             .enter()
             .append('g')
-            .attr('class', 'fastD3PieItem');
-        
-        let delG = groups.data(formData, (d) =>{
-            return d.name;
-        })
-        .exit();
+            .attr('class', 'fastD3PieItem')
+            .attr('transform', d => {
+                return `translate(${width/2 + xoff}, ${height/2 + yoff})`;
+            });
+
+        let delG = groups.data(formData, (d) => {
+                return d.name;
+            })
+            .exit();
 
         delG
             .select('path')
             .transition(this.changeDuration)
             .ease(this.changeType)
-            .attr('d', `M${width/2 + this.xoff} ${height/2 + this.yoff}`)
+            .attr('d', `M${width/2 + xoff} ${height/2 + yoff}`)
 
         addG.append('path')
-            .attr('d', d=>{return d.d;})
-            .attr('fill', 'white');
+            .attr('d', ``)
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('d', d => {
+                return d.d;
+            })
+            .attr('fill', (d, i, arr) => {
+                return this.color(d, i, arr);
+            });
 
         // todo；未正确显示扇形图
 
@@ -217,7 +272,9 @@ fastD3.pieDefault = {
                 selfSelector.select('path')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
-                    .attr('d', d=>{return d.d;})
+                    .attr('d', d => {
+                        return d.d;
+                    })
                     .attr('x', (d) => {
                         return d.x;
                     })
@@ -313,7 +370,7 @@ fastD3.columnDefault = {
     yOffset: 0,
     enterDuration: 2000,
     changeDuration: 1000,
-    needLine : false,
+    needLine: false,
     enterType: d3.easeQuad,
     changeType: d3.easeQuad,
     rectReadyInit: {},
@@ -558,7 +615,7 @@ fastD3.columnDefault = {
         });
 
         let nPath = '';
-        formData.forEach( (d)=>{
+        formData.forEach((d) => {
             nPath += `L${d.x + d.width/2} ${d.y} `;
         });
 
