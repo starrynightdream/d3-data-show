@@ -5,7 +5,7 @@ window.onload = () =>{
 
     fastD3.SVG(svg);
 
-    let param = {...fastD3.columnDefault};
+    let param = {...fastD3.pieDefault};
     param.widthPercent = 0.5
     param.heightPercent = 0.5
     param.xOffset = 0.25;
@@ -18,7 +18,7 @@ window.onload = () =>{
     // param.sort = (a,b) =>{
     //     return b.value - a.value;
     // }
-    let his = fastD3.column(getData(), param);
+    let his = fastD3.pie(getData(), param);
 
     setTimeout(() => {
         let d = getData();

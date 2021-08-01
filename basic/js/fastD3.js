@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-01 00:18:24
+ * @Last Modified time: 2021-08-01 10:45:35
  */
 // 前置依赖是d3.js 请在使用前导入。
 // 在其它地方更新了但未推送的变更有
@@ -75,14 +75,206 @@ fastD3.onlyId = function () {
     return `chart${this.id++}`;
 }
 
+fastD3.pieDefault = {
+    widthPercent: 1,
+    heightPercent: 1,
+    topSpacePerHeight: 0.07,
+    bottomSpacePerHeight: 0.05,
+    lineHeight: 20,
+    fontSize: 20,
+    xOffset: 0,
+    yOffset: 0,
+    outerRadiusPerSize: 1,
+    innerRadiusPerOuter: 0, 
+    enterDuration: 2000,
+    changeDuration: 1000,
+    enterType: d3.easeQuad,
+    changeType: d3.easeQuad,
+    rectReadyInit: {},
+    rectAfterInit: {},
+    nameReadyInit: {},
+    nameAfterInit: {},
+    valueReadyInit: {},
+    valueAfterInit: {},
+    sort: null,
+    fontColor() {
+        return 'black';
+    },
+    color(d, i, arr) {
+        return `hsl(${i/arr.length * 360}, 100%, 80%)`;
+    },
+    cName(name) {
+        return name;
+    },
+    cValue(value) {
+        return value;
+    },
+    formData(data) {
+        let that = this;
+        let width = fastD3.width * this.widthPercent;
+        let height = fastD3.height * this.heightPercent;
+
+        let xoff = fastD3.width * this.xOffset;
+        let yoff = fastD3.height * this.yOffset;
+
+        let values = data.map((item) => {
+            return item.value
+        });
+        let min = Math.min(...values); // 考虑是否可以使用最小值以减少占用空间
+        let max = Math.max(...values);
+        let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight);
+        let chartBottom = height * (1 - this.bottomSpacePerHeight - this.yOffset);
+
+        let pie = d3.pie();
+        let tdata = pie(values);
+        console.log(tdata);
+        let outer = Math.min(width, chartHeight) * this.outerRadiusPerSize;
+        let inner = outer * this.innerRadiusPerOuter;
+        let arc = d3.arc()
+            .innerRadius(inner)
+            .outerRadius(outer);
+
+        let formData = [];
+        data.forEach((d, i) => {
+
+            formData.push({
+                name: this.cName(d.name),
+                value: this.cValue(d.value),
+                d: arc(tdata[i]), 
+                x:0,
+                y:0,
+            });
+        });
+        return [width, height, formData, chartBottom, xoff, yoff];
+    },
+    cData(data, chart) {
+        // 解析结构
+        if (!data) {
+            console.error('数据为空, 如果希望清空版面请传入空数组');
+            return;
+        }
+
+        if (this.sort) {
+            data.sort(this.sort);
+        }
+        let that = this;
+        let names = data.map((v) => {
+            return v.name;
+        });
+        let groups = chart.d3r.selectAll('.fastD3ColumItem');
+        // let groups = d3.selectAll(`#${chart._id}>g`);
+        // 处理变化后的新数据
+        let [width, height, formData, chartBottom, xoff, yoff] = this.formData(data);
+        let nameToData = new Map();
+        formData.forEach((d) => {
+
+            if (d.name in nameToData) {
+                nameToData[d.name].data.push(d);
+            } else {
+                nameToData[d.name] = {
+                    index: 0,
+                    data: [d],
+                    getData: function () {
+                        return [this.data[this.index++]];
+                    }
+                };
+            }
+        });
+
+        // 绘制变化同时应用过渡
+        let addG = groups.data(formData, (d) => {
+                return d.name
+            })
+            .enter()
+            .append('g')
+            .attr('class', 'fastD3PieItem');
+        
+        let delG = groups.data(formData, (d) =>{
+            return d.name;
+        })
+        .exit();
+
+        delG
+            .select('path')
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('d', `M${width/2 + this.xoff} ${height/2 + this.yoff}`)
+
+        addG.append('path')
+            .attr('d', d=>{return d.d;})
+            .attr('fill', 'white');
+
+        // todo；未正确显示扇形图
+
+        groups.each(function (d, i, arr) {
+            let idx = names.indexOf(d.name)
+            let selfSelector = d3.select(this);
+            if (idx != -1) {
+                // 依旧存在的
+                names.splice(idx, 1);
+                let _d = nameToData[d.name];
+
+                selfSelector.select('path')
+                    .transition(that.changeDuration)
+                    .ease(that.changeType)
+                    .attr('d', d=>{return d.d;})
+                    .attr('x', (d) => {
+                        return d.x;
+                    })
+                    .attr('y', (d) => {
+                        return d.y;
+                    });
+
+            } else {
+                // 不再存在的
+                // selfSelector.select('g').select('text')
+                //     .remove();
+                // selfSelector.select('text')
+                //     .remove();
+                // selfSelector.select('rect')
+                //     .transition(that.changeDuration)
+                //     .ease(that.changeType)
+                //     .attr('width', 0);
+                // selfSelector
+                //     .transition(that.changeDuration)
+                //     .ease(that.changeType)
+                //     .remove();
+            }
+        });
+
+        // 处理结构
+        chart.data = data;
+        chart.param = this;
+        return chart;
+    },
+}
+
 fastD3.pie = (data, param = fastD3.pieDefault) => {
 
     if (!fastD3.check()) {
-        console.error(fastD3.error())
+        console.error(fastD3.error());
     }
     // 数据处理部分
-    // 绘制部分
+    let [width, height, formData] = param.formData(data);
+    // 绘制部分, 绘制空表
+    let colRoot = d3.select(fastD3._svg).append('g');
+    let oid = fastD3.onlyId();
+    colRoot.attr('id', oid);
     // 结构处理
+    let aPie = {
+        ...Chart
+    };
+    aPie._id = oid;
+    aPie.data = data;
+    aPie.cData = function (_data) {
+        param.cData(_data, this);
+    };
+    aPie.param = param;
+    aPie.d3r = colRoot;
+
+    param.cData(data, aPie); // 延后绘制
+
+    return aPie;
 };
 
 fastD3.histogramDefault = {
@@ -372,11 +564,19 @@ fastD3.columnDefault = {
 
         nPath = nPath.replace('L', 'M');
         let line = chart.d3r.select('path');
+        let _d = line.attr('d');
+        line.remove();
+        line = chart.d3r.append('path');
 
         line
+            .attr('d', _d)
             .transition(this.changeDuration + 10)
             .ease(this.changeType)
-            .attr('d', nPath);
+            .attr('d', nPath)
+            .attr('fill', 'rgba(0,0,0,0)')
+            .attr('stroke-width', 2)
+            .attr('stroke', 'white');
+
         line.text('reflesh');
 
         // 处理结构
@@ -398,6 +598,7 @@ fastD3.column = (data, param = fastD3.columnDefault) => {
     let oid = fastD3.onlyId();
     colRoot.attr('id', oid);
     colRoot.append('path')
+        .attr('fill', 'rgba(0,0,0,0)')
         .attr('stroke-width', 2)
         .attr('stroke', 'white');
     // 结构处理
