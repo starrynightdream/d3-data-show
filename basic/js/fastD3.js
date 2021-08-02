@@ -2,14 +2,9 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-02 00:19:02
+ * @Last Modified time: 2021-08-03 01:21:20
  */
 // 前置依赖是d3.js 请在使用前导入。
-// 在其它地方更新了但未推送的变更有
-/** 
- * 添加字体颜色函数的设定
- * 使用es6实现的导入d3与导出fastD3
- */
 
 const fastD3 = {
     _svg: null,
@@ -21,6 +16,8 @@ const fastD3 = {
     check() {},
     id: 1,
     onlyId() {},
+    _formPercent(){},
+    _arcDraw(){},
 };
 
 // 图表类模板
@@ -78,10 +75,11 @@ fastD3.onlyId = function () {
 fastD3._formPercent = function (data, getter = (d) => {
     return d._value
 }, setter = (d, start, end) => {
-    d.percent = start - end;
     d.start = start;
     d.end = end;
+    return d;
 }) {
+    let fd = [...data];
     // 根据传入的数据计算比例
     let sum = 0;
     data.forEach((d) => {
@@ -89,28 +87,29 @@ fastD3._formPercent = function (data, getter = (d) => {
     });
     let recodeDeg = 0;
     if (sum === 0) sum = 1;
-    data.forEach((d) => {
+    for (let i in data) {
+        let d = fd[i];
         let deg = getter(d) / sum;
-        setter(d, recodeDeg, recodeDeg + deg);
-    });
+        fd[i] = setter(d, recodeDeg, recodeDeg + deg);
+        recodeDeg += deg;
+    }
+    return fd;
 }
 
 fastD3._arcDraw = function (outter, intter = 0, getter = (d)=>{return d;}) {
     // 返回根据数据生成路径的对象
-    return (d) =>{
-        d = getter(d);
-        // 根据对象生成路径t
-        let ang = Math.PI * 2 * d.precent;
-        let ans = `M${Math.sin(ang) * intter} ${Math.cos(ang) * intter}`;
-        ans += ` A ${intter} ${intter} 0 0 ${d.precent > 0.5 ? 1 : 0} 1 0 ${outter - intter}`; // 内弧形
-        ans += ` L 0 0`; // 左侧
-        ans += ` A ${outter} ${outter} 0 1 ${d.precent > 0.5 ? 1 : 0} 1 0 ` +
-        `${Math.sin(ang) * intter} ${Math.cos(ang) * intter}`; // 外弧形
-        ans += ' Z';
-
-        // todo: 应用线路绘制
-        return ans;
-    }
+        return (d) =>{
+            d = getter(d);
+            let precent = d.end - d.start;
+            // 根据对象生成路径t
+            let ang = Math.PI * 2 * precent ;
+            return `M${Math.sin(ang) * intter} ${Math.cos(ang) * intter}` +
+            ` A ${intter} ${intter} 0 0 ${precent > 0.5 ? 1 : 0} 0 ${intter}` + // 内弧形
+            ` L 0 ${outter}` + // 左侧
+            ` A ${outter} ${outter} 0 0 ${precent > 0.5 ? 1 : 0} ` +
+            `${Math.sin(ang) * outter} ${Math.cos(ang) * outter}` + // 外弧形
+            ' Z';
+        };
 }
 
 fastD3.pieDefault = {
@@ -163,34 +162,28 @@ fastD3.pieDefault = {
         let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight);
         let chartBottom = height * (1 - this.bottomSpacePerHeight - this.yOffset);
 
-        let pie = d3.pie();
-        let tdata = pie(values);
         let outer = Math.min(width, chartHeight) * this.outerRadiusPerSize;
         let inner = outer * this.innerRadiusPerOuter;
-        let arc = d3.arc()
-            .innerRadius(inner)
-            .outerRadius(outer);
-
-        /**
-         * M1.3471114790620884e-14,-219.99999999999997
-         * A219.99999999999997,219.99999999999997,0,0,1,210.96336692134878,62.40559123354527
-         * L0,0Z
-         */
+        let arc = fastD3._arcDraw(outer, inner);
+        let uniform = {};
+        uniform.arc0 = arc({start:0, end:0});
 
         let formData = [];
-        data.forEach((d, i) => {
-
+        data.forEach((_d) => {
+            
             formData.push({
-                name: this.cName(d.name),
-                value: this.cValue(d.value),
-                _value: d.value,
-                d: arc(tdata[i]),
+                name: this.cName(_d.name),
+                value: this.cValue(_d.value),
+                _value: _d.value,
                 x: 0,
                 y: 0,
             });
         });
-        fastD3._formPercent(data);
-        return [width, height, formData, chartBottom, xoff, yoff];
+        fastD3._formPercent(formData);
+        formData.forEach( _d=>{
+            _d.d = arc(_d);
+        });
+        return [width, height, formData, chartBottom, xoff, yoff, uniform];
     },
     cData(data, chart) {
         // 解析结构
@@ -206,10 +199,8 @@ fastD3.pieDefault = {
         let names = data.map((v) => {
             return v.name;
         });
-        let groups = chart.d3r.selectAll('.fastD3PieItem');
-        // let groups = d3.selectAll(`#${chart._id}>g`);
         // 处理变化后的新数据
-        let [width, height, formData, chartBottom, xoff, yoff] = this.formData(data);
+        let [width, height, formData, chartBottom, xoff, yoff, uniform] = this.formData(data);
         let nameToData = new Map();
         formData.forEach((d) => {
 
@@ -225,6 +216,7 @@ fastD3.pieDefault = {
                 };
             }
         });
+        let groups = chart.d3r.selectAll('.fastD3PieItem');
 
         // 绘制变化同时应用过渡
         let addG = groups.data(formData, (d) => {
@@ -246,20 +238,30 @@ fastD3.pieDefault = {
             .select('path')
             .transition(this.changeDuration)
             .ease(this.changeType)
-            .attr('d', `M${width/2 + xoff} ${height/2 + yoff}`)
-
-        addG.append('path')
-            .attr('d', ``)
+            .attr('d', uniform.arc0)
+        delG
             .transition(this.changeDuration)
             .ease(this.changeType)
+            .remove();
+
+        addG.append('path')
+            .attr('stroke-width', 1)
+            .attr('stroke', 'white')
             .attr('d', d => {
                 return d.d;
+            })
+            .attr('transform', () =>{
+                return `rotate(0)`;
+            })
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('transform', (d) =>{
+                return `rotate(${-d.start * 360})`;
             })
             .attr('fill', (d, i, arr) => {
                 return this.color(d, i, arr);
             });
 
-        // todo；未正确显示扇形图
 
         groups.each(function (d, i, arr) {
             let idx = names.indexOf(d.name)
@@ -272,6 +274,9 @@ fastD3.pieDefault = {
                 selfSelector.select('path')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
+                    .attr('transform', (d) =>{
+                        return `rotate(${-d.start * 360})`;
+                    })
                     .attr('d', d => {
                         return d.d;
                     })
@@ -298,6 +303,7 @@ fastD3.pieDefault = {
                 //     .remove();
             }
         });
+        // todo: 添加设定，重构代码
 
         // 处理结构
         chart.data = data;
@@ -312,7 +318,6 @@ fastD3.pie = (data, param = fastD3.pieDefault) => {
         console.error(fastD3.error());
     }
     // 数据处理部分
-    let [width, height, formData] = param.formData(data);
     // 绘制部分, 绘制空表
     let colRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();
@@ -648,8 +653,6 @@ fastD3.column = (data, param = fastD3.columnDefault) => {
     if (!fastD3.check()) {
         console.error(fastD3.error());
     }
-    // 数据处理部分
-    let [width, height, formData] = param.formData(data);
     // 绘制部分, 绘制空表
     let colRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();

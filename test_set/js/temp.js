@@ -44,8 +44,11 @@ window.onload = () =>{
     }, 2000);
 
     setTimeout(() => {
-        // his.cData([]);
+        his.cData([]);
     }, 3000);
+
+
+    let testL = [{name: 'a', _value:1},{name: 'a', _value:2},{name: 'a', _value:3},{name: 'a', _value:4}]
 }
 
 function getData() {
