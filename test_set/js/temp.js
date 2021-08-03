@@ -6,14 +6,14 @@ window.onload = () =>{
     fastD3.SVG(svg);
 
     let param = {...fastD3.pieDefault};
-    param.widthPercent = 0.5
-    param.heightPercent = 0.5
-    param.xOffset = 0.25;
-    param.yOffset = 0.25;
-    param.fontSize = 10;
-    param.lineHeight = 10;
+    // param.widthPercent = 0.5
+    // param.heightPercent = 0.5
+    // param.xOffset = 0.25;
+    // param.yOffset = 0.25;
+    // param.fontSize = 10;
+    // param.lineHeight = 10;
     param.fontColor = (d, i, arr) =>{
-        return `rgb(${i * 100}, 255, 255)`;
+        return `black`;
     }
     // param.sort = (a,b) =>{
     //     return b.value - a.value;
@@ -25,26 +25,26 @@ window.onload = () =>{
         d.splice(2,1);
         d.push({
             name: 'Change',
-            value: 10
+            value: 7
         });
         d.push({
             name: 'Change1',
-            value: 10
+            value: 8
         });
         d.push({
             name: 'Change2',
-            value: 10
+            value: 9
         });
         d.push({
             name: 'Change3',
             value: 10
         });
-        d[1].value = 2;
+        d[1].value = 20;
         his.cData(d);
     }, 2000);
 
     setTimeout(() => {
-        his.cData([]);
+        // his.cData([]);
     }, 3000);
 
 
@@ -54,21 +54,21 @@ window.onload = () =>{
 function getData() {
     return [{
         name: 'APath',
-        value: 42
+        value: 6
     }, {
         name: 'BPath',
-        value: 23
+        value: 5
     }, {
         name: 'CPath',
-        value: 19
+        value: 4
     }, {
         name: 'DPath',
-        value: 2
+        value: 3
     }, {
         name: 'EPath',
-        value: 34
+        value: 2
     }, {
         name: 'FPath',
-        value: 22
+        value: 1
     }];
 }

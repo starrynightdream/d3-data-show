@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-03 01:21:20
+ * @Last Modified time: 2021-08-03 11:54:28
  */
 // 前置依赖是d3.js 请在使用前导入。
 
@@ -16,8 +16,8 @@ const fastD3 = {
     check() {},
     id: 1,
     onlyId() {},
-    _formPercent(){},
-    _arcDraw(){},
+    _formPercent() {},
+    _arcDraw() {},
 };
 
 // 图表类模板
@@ -72,6 +72,13 @@ fastD3.onlyId = function () {
     return `chart${this.id++}`;
 }
 
+/**
+ * 处理数据，获取百分比值
+ * @param {Array} data 待处理的数据
+ * @param {Function} getter 获取键的函数
+ * @param {Function} setter 设定值的函数
+ * @returns 处理得到的数据，同时传入的参数也同理是会改变的。
+ */
 fastD3._formPercent = function (data, getter = (d) => {
     return d._value
 }, setter = (d, start, end) => {
@@ -96,20 +103,28 @@ fastD3._formPercent = function (data, getter = (d) => {
     return fd;
 }
 
-fastD3._arcDraw = function (outter, intter = 0, getter = (d)=>{return d;}) {
-    // 返回根据数据生成路径的对象
-        return (d) =>{
-            d = getter(d);
-            let precent = d.end - d.start;
-            // 根据对象生成路径t
-            let ang = Math.PI * 2 * precent ;
-            return `M${Math.sin(ang) * intter} ${Math.cos(ang) * intter}` +
+/**
+ * 获取可以扇形绘制的路径的函数
+ * @param {Number} outter 外半径
+ * @param {Number} intter 内半径
+ * @param {Function} getter 获取键的函数
+ * @returns 绘制的路径的函数
+ */
+fastD3._arcDraw = function (outter, intter = 0, getter = (d) => {
+    return d;
+}) {
+    return (d) => {
+        d = getter(d);
+        let precent = d.end - d.start;
+        // 根据对象生成路径t
+        let ang = Math.PI * 2 * precent;
+        return `M${Math.sin(ang) * intter} ${Math.cos(ang) * intter}` +
             ` A ${intter} ${intter} 0 0 ${precent > 0.5 ? 1 : 0} 0 ${intter}` + // 内弧形
             ` L 0 ${outter}` + // 左侧
             ` A ${outter} ${outter} 0 0 ${precent > 0.5 ? 1 : 0} ` +
             `${Math.sin(ang) * outter} ${Math.cos(ang) * outter}` + // 外弧形
             ' Z';
-        };
+    };
 }
 
 fastD3.pieDefault = {
@@ -123,16 +138,15 @@ fastD3.pieDefault = {
     yOffset: 0,
     outerRadiusPerSize: 1,
     innerRadiusPerOuter: 0,
+    textPullAng: 20,
     enterDuration: 2000,
     changeDuration: 1000,
     enterType: d3.easeQuad,
     changeType: d3.easeQuad,
-    rectReadyInit: {},
-    rectAfterInit: {},
-    nameReadyInit: {},
-    nameAfterInit: {},
-    valueReadyInit: {},
-    valueAfterInit: {},
+    pieReadyInit: {},
+    pieAfterInit: {},
+    textReadyInit: {},
+    textAfterInit: {},
     sort: null,
     fontColor() {
         return 'black';
@@ -140,50 +154,46 @@ fastD3.pieDefault = {
     color(d, i, arr) {
         return `hsl(${i/arr.length * 360}, 100%, 80%)`;
     },
-    cName(name) {
-        return name;
-    },
-    cValue(value) {
-        return value;
+    setText: (d) => {
+        return d.name;
     },
     formData(data) {
-        let that = this;
         let width = fastD3.width * this.widthPercent;
         let height = fastD3.height * this.heightPercent;
 
         let xoff = fastD3.width * this.xOffset;
         let yoff = fastD3.height * this.yOffset;
 
-        let values = data.map((item) => {
-            return item.value
-        });
-        let min = Math.min(...values); // 考虑是否可以使用最小值以减少占用空间
-        let max = Math.max(...values);
         let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight);
-        let chartBottom = height * (1 - this.bottomSpacePerHeight - this.yOffset);
 
-        let outer = Math.min(width, chartHeight) * this.outerRadiusPerSize;
+        let outer = Math.min(width, chartHeight) * this.outerRadiusPerSize / 2;
         let inner = outer * this.innerRadiusPerOuter;
         let arc = fastD3._arcDraw(outer, inner);
         let uniform = {};
-        uniform.arc0 = arc({start:0, end:0});
+        uniform.arc0 = arc({
+            start: 0,
+            end: 0
+        });
+        uniform.outer = outer;
+        uniform.inner = inner;
 
         let formData = [];
-        data.forEach((_d) => {
-            
+        data.forEach((_d, i) => {
+
             formData.push({
-                name: this.cName(_d.name),
-                value: this.cValue(_d.value),
+                name: _d.name,
+                value: _d.value,
                 _value: _d.value,
+                text: this.setText(_d, i),
                 x: 0,
                 y: 0,
             });
         });
         fastD3._formPercent(formData);
-        formData.forEach( _d=>{
+        formData.forEach(_d => {
             _d.d = arc(_d);
         });
-        return [width, height, formData, chartBottom, xoff, yoff, uniform];
+        return [width, height, formData, xoff, yoff, uniform];
     },
     cData(data, chart) {
         // 解析结构
@@ -196,27 +206,11 @@ fastD3.pieDefault = {
             data.sort(this.sort);
         }
         let that = this;
-        let names = data.map((v) => {
-            return v.name;
-        });
+        let pull = this.textPullAng / 360;
         // 处理变化后的新数据
-        let [width, height, formData, chartBottom, xoff, yoff, uniform] = this.formData(data);
-        let nameToData = new Map();
-        formData.forEach((d) => {
-
-            if (d.name in nameToData) {
-                nameToData[d.name].data.push(d);
-            } else {
-                nameToData[d.name] = {
-                    index: 0,
-                    data: [d],
-                    getData: function () {
-                        return [this.data[this.index++]];
-                    }
-                };
-            }
-        });
-        let groups = chart.d3r.selectAll('.fastD3PieItem');
+        let [width, height, formData, xoff, yoff, uniform] = this.formData(data);
+        let groups = chart.d3r.select('.pieItemSet').selectAll('.fastD3PieItem');
+        let texts = chart.d3r.select('.pieTextSet').selectAll('.fastD3PieItem');
 
         // 绘制变化同时应用过渡
         let addG = groups.data(formData, (d) => {
@@ -225,11 +219,69 @@ fastD3.pieDefault = {
             .enter()
             .append('g')
             .attr('class', 'fastD3PieItem')
-            .attr('transform', d => {
+            .attr('transform', _ => {
+                return `translate(${width/2 + xoff}, ${height/2 + yoff})`;
+            });
+        let addGT = texts.data(formData, (d) => {
+                return d.name
+            })
+            .enter()
+            .append('g')
+            .attr('class', 'fastD3PieItem')
+            .attr('transform', _ => {
                 return `translate(${width/2 + xoff}, ${height/2 + yoff})`;
             });
 
+        addG.append('path')
+            .attr('stroke-width', 1)
+            .attr('stroke', 'white')
+            .attr('d', d => {
+                return d.d;
+            })
+            .attr('transform', () => {
+                return `rotate(0)`;
+            })
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('transform', (d) => {
+                return `rotate(${-d.start * 360})`;
+            })
+            .attr('fill', (d, i, arr) => {
+                return this.color(d, i, arr);
+            });
+
+        let mid = (uniform.outer + uniform.inner) / 2;
+        let tr = mid;
+        addGT.append('text')
+            .text(d => {
+                return d.text;
+            })
+            .attr('font-size', 0)
+            .attr('fill', (d, i, arr) => {
+                return this.fontColor(d, i, arr);
+            })
+            .attr('style', 'dominant-baseline:middle;text-anchor:middle;')
+            .attr('transform', 'translate(0,0)')
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('font-size', this.fontSize)
+            .attr('transform', (d) => {
+                let ang = Math.PI * (d.start + d.end);
+                console.log(d.end - d.start, pull)
+                if (d.end - d.start < pull) {
+                    tr += this.lineHeight;
+                } else {
+                    tr = mid;
+                }
+                return `translate(${Math.sin(ang) * tr},${Math.cos(ang) * tr})`
+            });
+
         let delG = groups.data(formData, (d) => {
+                return d.name;
+            })
+            .exit();
+
+        let delGT = texts.data(formData, (d) => {
                 return d.name;
             })
             .exit();
@@ -238,43 +290,40 @@ fastD3.pieDefault = {
             .select('path')
             .transition(this.changeDuration)
             .ease(this.changeType)
-            .attr('d', uniform.arc0)
+            .attr('d', uniform.arc0);
+
         delG
             .transition(this.changeDuration)
             .ease(this.changeType)
             .remove();
 
-        addG.append('path')
-            .attr('stroke-width', 1)
-            .attr('stroke', 'white')
-            .attr('d', d => {
-                return d.d;
-            })
-            .attr('transform', () =>{
-                return `rotate(0)`;
-            })
+        delGT
+            .select('text')
             .transition(this.changeDuration)
             .ease(this.changeType)
-            .attr('transform', (d) =>{
-                return `rotate(${-d.start * 360})`;
-            })
-            .attr('fill', (d, i, arr) => {
-                return this.color(d, i, arr);
-            });
+            .attr('font-size', '0')
+            .attr('transform', 'translate(0,0)');
 
+        delGT
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .remove();
+
+        let names = data.map((v) => {
+            return v.name;
+        });
 
         groups.each(function (d, i, arr) {
             let idx = names.indexOf(d.name)
             let selfSelector = d3.select(this);
             if (idx != -1) {
-                // 依旧存在的
+                // 优化仅处理依旧存在的
                 names.splice(idx, 1);
-                let _d = nameToData[d.name];
 
                 selfSelector.select('path')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
-                    .attr('transform', (d) =>{
+                    .attr('transform', (d) => {
                         return `rotate(${-d.start * 360})`;
                     })
                     .attr('d', d => {
@@ -287,24 +336,34 @@ fastD3.pieDefault = {
                         return d.y;
                     });
 
-            } else {
-                // 不再存在的
-                // selfSelector.select('g').select('text')
-                //     .remove();
-                // selfSelector.select('text')
-                //     .remove();
-                // selfSelector.select('rect')
-                //     .transition(that.changeDuration)
-                //     .ease(that.changeType)
-                //     .attr('width', 0);
-                // selfSelector
-                //     .transition(that.changeDuration)
-                //     .ease(that.changeType)
-                //     .remove();
             }
         });
-        // todo: 添加设定，重构代码
 
+        names = data.map((v) => {
+            return v.name;
+        });
+        texts.each(function (d, i, arr) {
+            let idx = names.indexOf(d.name)
+            let selfSelector = d3.select(this);
+            if (idx != -1) {
+                // 优化仅处理依旧存在的
+                names.splice(idx, 1);
+
+                selfSelector.select('text')
+                    .transition(that.changeDuration)
+                    .ease(that.changeType)
+                    .attr('transform', (d) => {
+                        let ang = Math.PI * (d.start + d.end);
+                        if (d.end - d.start < pull) {
+                            tr += that.lineHeight;
+                        } else {
+                            tr = mid;
+                        }
+                        return `translate(${Math.sin(ang) * tr},${Math.cos(ang) * tr})`
+                    });
+
+            }
+        });
         // 处理结构
         chart.data = data;
         chart.param = this;
@@ -319,9 +378,12 @@ fastD3.pie = (data, param = fastD3.pieDefault) => {
     }
     // 数据处理部分
     // 绘制部分, 绘制空表
-    let colRoot = d3.select(fastD3._svg).append('g');
+    let pieRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();
-    colRoot.attr('id', oid);
+    pieRoot.attr('id', oid);
+
+    pieRoot.append('g').attr('class', 'pieItemSet');
+    pieRoot.append('g').attr('class', 'pieTextSet');
     // 结构处理
     let aPie = {
         ...Chart
@@ -332,7 +394,7 @@ fastD3.pie = (data, param = fastD3.pieDefault) => {
         param.cData(_data, this);
     };
     aPie.param = param;
-    aPie.d3r = colRoot;
+    aPie.d3r = pieRoot;
 
     param.cData(data, aPie); // 延后绘制
 
@@ -408,7 +470,6 @@ fastD3.columnDefault = {
         let values = data.map((item) => {
             return item.value
         });
-        let min = Math.min(...values); // 考虑是否可以使用最小值以减少占用空间
         let max = Math.max(...values);
         let chartHeight = height * (1 - this.topSpacePerHeight - this.bottomSpacePerHeight);
         let chartBottom = height * (1 - this.bottomSpacePerHeight - this.yOffset);
@@ -456,21 +517,6 @@ fastD3.columnDefault = {
         // let groups = d3.selectAll(`#${chart._id}>g`);
         // 处理变化后的新数据
         let [width, height, formData, chartBottom, xoff, yoff] = this.formData(data);
-        let nameToData = new Map();
-        formData.forEach((d) => {
-
-            if (d.name in nameToData) {
-                nameToData[d.name].data.push(d);
-            } else {
-                nameToData[d.name] = {
-                    index: 0,
-                    data: [d],
-                    getData: function () {
-                        return [this.data[this.index++]];
-                    }
-                };
-            }
-        });
 
         // 绘制变化同时应用过渡
         let addG = groups.data(formData, (d) => {
@@ -480,7 +526,7 @@ fastD3.columnDefault = {
             .append('g')
             .attr('class', 'fastD3ColumItem');
 
-        let nameG = addG.append('text')
+        addG.append('text')
             .attr('', function (d) {
                 let selfSelector = d3.select(this);
                 if (typeof d.name === 'object') {
@@ -502,7 +548,7 @@ fastD3.columnDefault = {
             })
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
-        let valueG = addG.append('g').append('text')
+        addG.append('g').append('text')
             .attr('', function (d) {
                 let selfSelector = d3.select(this);
                 if (typeof d.value === 'object') {
@@ -563,7 +609,6 @@ fastD3.columnDefault = {
             if (idx != -1) {
                 // 依旧存在的
                 names.splice(idx, 1);
-                let _d = nameToData[d.name];
                 selfSelector.select('text')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
