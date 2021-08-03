@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-03 11:54:28
+ * @Last Modified time: 2021-08-03 15:45:41
  */
 // 前置依赖是d3.js 请在使用前导入。
 
@@ -267,7 +267,6 @@ fastD3.pieDefault = {
             .attr('font-size', this.fontSize)
             .attr('transform', (d) => {
                 let ang = Math.PI * (d.start + d.end);
-                console.log(d.end - d.start, pull)
                 if (d.end - d.start < pull) {
                     tr += this.lineHeight;
                 } else {
