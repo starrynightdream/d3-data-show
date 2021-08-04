@@ -6,12 +6,12 @@ window.onload = () =>{
     fastD3.SVG(svg);
 
     let param = {...fastD3.pieDefault};
-    // param.widthPercent = 0.5
-    // param.heightPercent = 0.5
-    // param.xOffset = 0.25;
-    // param.yOffset = 0.25;
-    // param.fontSize = 10;
-    // param.lineHeight = 10;
+    param.widthPercent = 0.5
+    param.heightPercent = 0.5
+    param.xOffset = 0.5;
+    param.yOffset = 0.25;
+    param.fontSize = 10;
+    param.lineHeight = 10;
     param.fontColor = (d, i, arr) =>{
         return `black`;
     }
@@ -19,6 +19,22 @@ window.onload = () =>{
     //     return b.value - a.value;
     // }
     let his = fastD3.pie(getData(), param);
+
+    let param2 = {...fastD3.columnDefault};
+    param2.widthPercent = 0.5
+    param2.heightPercent = 0.5
+    param2.xOffset = 0;
+    param2.yOffset = 0.25;
+    param2.fontSize = 10;
+    param2.lineHeight = 10;
+    param2.fontColor = (d, i, arr) =>{
+        return `white`;
+    }
+    let col = fastD3.column(getData(), param2);
+
+    let param3 = {...fastD3.textDefault}
+    param3.fontColor = 'white';
+    let text = fastD3.text('show', param3);
 
     setTimeout(() => {
         let d = getData();
@@ -40,11 +56,15 @@ window.onload = () =>{
             value: 10
         });
         d[1].value = 20;
+
         his.cData(d);
+        col.cData(d);
+        text.cData('123')
     }, 2000);
 
     setTimeout(() => {
-        // his.cData([]);
+        his.cData([]);
+        col.cData([]);
     }, 3000);
 
 

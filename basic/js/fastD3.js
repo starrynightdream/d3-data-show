@@ -2,9 +2,10 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-03 15:45:41
+ * @Last Modified time: 2021-08-05 00:37:18
  */
 // 前置依赖是d3.js 请在使用前导入。
+// todo: 添加一个快速放置文字的接口。
 
 const fastD3 = {
     _svg: null,
@@ -70,6 +71,183 @@ fastD3.check = function () {
 
 fastD3.onlyId = function () {
     return `chart${this.id++}`;
+}
+
+fastD3.textDefault = {
+    widthPercent: -1,
+    heightPercent: -1,
+    xOffset: 0,
+    yOffset: 0,
+    lineHeight: 20,
+    fontSize: 20,
+    fontLeft: 0,
+    enterDuration: 2000,
+    changeDuration: 1000,
+    enterType: d3.easeQuad,
+    changeType: d3.easeQuad,
+    textReadyInit: {},
+    textAfterInit: {},
+    fontColor() {
+        return 'black';
+    },
+    setText: (d) => {
+        return d.name;
+    },
+    formData(data) {
+        let numCount = 0;
+        let linCount = 0;
+        if (typeof data === 'object') {
+            // 处理系列数组
+            for (let s of data) {
+                numCount = Math.max(numCount, s.length);
+            }
+            linCount = data.length;
+        } else if (typeof data === 'string'){
+            // 单个字符串
+            data = [data];
+            numCount = data.length;
+            linCount = 1;
+        } else {
+            data = [data + ''];
+            numCount = data.length;
+            linCount = 1;
+        }
+
+        let width = 0;
+        let height = 0;
+        if (this.widthPercent < 0) {
+            // 计算需要的宽度
+            width = this.fontSize * numCount;
+        } else {
+            width = fastD3.width * this.widthPercent;
+        }
+
+        if (this.heightPercent < 0) {
+            // 计算需要的宽度
+            height = this.lineHeight * linCount;
+        } else {
+            height = fastD3.height * this.heightPercent;
+        }
+
+        let xoff = fastD3.width * this.xOffset;
+        let yoff = fastD3.height * this.yOffset;
+
+        let uniform = {};
+
+        let formData = [];
+        data.forEach((_d, i) => {
+
+            formData.push({
+                text: _d,
+                x: this.fontLeft,
+                y: i * this.lineHeight,
+                width: _d.length * (this.fontSize + 1),
+            });
+        });
+        return [width, height, formData, xoff, yoff, uniform];
+    },
+    cData(data, chart) {
+        // 解析结构
+        if (!data) {
+            console.error('数据为空, 如果希望清空版面请传入空数组');
+            return;
+        }
+
+        let that = this;
+        // 处理变化后的新数据
+        let [width, height, formData, xoff, yoff, uniform] = this.formData(data);
+        let mr = chart.d3r.select(`${chart._id}mask`).select('rect')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('x', xoff)
+            .attr('y', yoff);
+
+        let groups = chart.d3r.select('.fastD3TextRoot').selectAll('.fastD3TextItem');
+
+        // 绘制变化同时应用过渡
+        groups.data(formData, (d) => {
+                return d.text;
+            })
+            .enter()
+            .append('tspan')
+            .attr('class', 'fastD3TextItem') // 变化
+            .text(d=>{return d.text;})
+            .attr('fill', that.fontColor)
+            .attr('x', d=>{return d.x - d.width;})
+            .attr('y', d=>{return d.y;})
+            .attr('dy', that.lineHeight)
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('x', d=>{return d.x;});
+
+        let delG = groups.data(formData, (d) => {
+                return d.text;
+            })
+            .exit();
+
+        // todo: 删除的移动以及遮罩的实现
+        delG
+            .attr('x', d=>{return d.x;})
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .attr('x', d=>{return d.x + d.width;})
+
+        delG
+            .transition(this.changeDuration)
+            .ease(this.changeType)
+            .remove();
+
+
+        let texts = formData.map((d) =>{return d.text;})
+        groups.each( function(d) {
+            let idx = texts.indexOf(d.text);
+            if (idx != -1) {
+                texts.splice(idx, 1);
+                let selfSelector = d3.select(this);
+                selfSelector
+                    .transition(that.changeDuration)
+                    .ease(that.changeType)
+                    .attr('x', d=>{return d.x;})
+                    .attr('y', d=>{return d.y;})
+            }
+        });
+
+        // 处理结构
+        chart.data = data;
+        chart.param = this;
+        return chart;
+    },
+}
+
+fastD3.text = function (data, param) {
+    // 快速加入方便变更位置和内容的文字对象
+    if (!fastD3.check()) {
+        console.error(fastD3.error());
+    }
+    // 绘制部分, 绘制空表
+    let colRoot = d3.select(fastD3._svg).append('g');
+    let oid = fastD3.onlyId();
+    colRoot.attr('id', oid);
+    colRoot.append('text').attr('class', 'fastD3TextRoot')
+            .attr('style', 'dominant-baseline:middle;text-anchor:start;');
+    colRoot.append('defs').append('mask')
+        .attr('id', `${oid}mask`)
+        .append('rect');
+    // 结构处理
+    let aColum = {
+        ...Chart
+    };
+    aColum._id = oid;
+    aColum.data = data;
+    aColum.cData = function (_data) {
+        param.cData(_data, this);
+    };
+    aColum.param = param;
+    aColum.d3r = colRoot;
+
+    param.cData(data, aColum); // 延后绘制
+
+    return aColum;
 }
 
 /**
