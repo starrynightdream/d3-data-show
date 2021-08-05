@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-05 11:43:56
+ * @Last Modified time: 2021-08-05 12:16:11
  */
 // 前置依赖是d3.js 请在使用前导入。
 // todo: 添加一个快速放置文字的接口。
@@ -225,6 +225,7 @@ fastD3.text = function (data, param) {
     if (!fastD3.check()) {
         console.error(fastD3.error());
     }
+    data = [...data];
     // 绘制部分, 绘制空表
     let colRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();
@@ -382,6 +383,7 @@ fastD3.pieDefault = {
             return;
         }
 
+        data = [...data];
         if (this.sort) {
             data.sort(this.sort);
         }
@@ -568,6 +570,7 @@ fastD3.pie = (data, param = fastD3.pieDefault) => {
         console.error(fastD3.error());
     }
     // 数据处理部分
+    data = [...data];
     // 绘制部分, 绘制空表
     let pieRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();
@@ -697,6 +700,7 @@ fastD3.columnDefault = {
             return;
         }
 
+        data = [...data];
         if (this.sort) {
             data.sort(this.sort);
         }
@@ -889,6 +893,7 @@ fastD3.column = (data, param = fastD3.columnDefault) => {
     if (!fastD3.check()) {
         console.error(fastD3.error());
     }
+    data = [...data];
     // 绘制部分, 绘制空表
     let colRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();

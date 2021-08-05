@@ -15,9 +15,9 @@ window.onload = () =>{
     param.fontColor = (d, i, arr) =>{
         return `black`;
     }
-    // param.sort = (a,b) =>{
-    //     return b.value - a.value;
-    // }
+    param.sort = (a,b) =>{
+        return b.value - a.value;
+    }
     let his = fastD3.pie(getData(), param);
 
     let param2 = {...fastD3.columnDefault};
