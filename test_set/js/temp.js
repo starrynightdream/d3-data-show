@@ -59,14 +59,15 @@ window.onload = () =>{
         });
         d[1].value = 20;
 
+        fastD3.cData(500, 500);
         his.cData(d);
         col.cData(d);
         text.cData('123')
     }, 2000);
 
     setTimeout(() => {
-        his.cData([]);
-        col.cData([]);
+        // his.cData([]);
+        // col.cData([]);
         text.cData(['456', '123'])
     }, 3000);
 

@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-05 11:26:15
+ * @Last Modified time: 2021-08-05 11:43:56
  */
 // 前置依赖是d3.js 请在使用前导入。
 // todo: 添加一个快速放置文字的接口。
@@ -55,6 +55,12 @@ fastD3.SVG = function (svg, width, height) {
         return fastD3._svg = svg;
     }
 };
+
+fastD3.cData = function(width, height) {
+    this.width = width;
+    this.height = height;
+    return this;
+}
 
 /**
  * 确认fastD3 设定正确
@@ -492,7 +498,13 @@ fastD3.pieDefault = {
             if (idx != -1) {
                 // 优化仅处理依旧存在的
                 names.splice(idx, 1);
-
+                selfSelector
+                    .transition(that.changeDuration)
+                    .ease(that.changeType)
+                    .attr('transform', _ => {
+                        return `translate(${width/2 + xoff}, ${height/2 + yoff})`;
+                    });
+                    
                 selfSelector.select('path')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
@@ -521,6 +533,12 @@ fastD3.pieDefault = {
             if (idx != -1) {
                 // 优化仅处理依旧存在的
                 names.splice(idx, 1);
+                selfSelector
+                    .transition(that.changeDuration)
+                    .ease(that.changeType)
+                    .attr('transform', _ => {
+                        return `translate(${width/2 + xoff}, ${height/2 + yoff})`;
+                    });
 
                 selfSelector.select('text')
                     .transition(that.changeDuration)
