@@ -2,14 +2,14 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-05 12:16:11
+ * @Last Modified time: 2021-08-05 22:17:03
  */
 // 前置依赖是d3.js 请在使用前导入。
-// todo: 添加一个快速放置文字的接口。
 
 const fastD3 = {
     _svg: null,
     _errStack: [],
+    _chartArr: [],
     error() {},
     width: 0,
     height: 0,
@@ -45,20 +45,34 @@ fastD3.error = function () {
  * @param {node} svg svg面板节点
  * @returns 设置后的面板节点
  */
-fastD3.SVG = function (svg, width, height) {
+fastD3.SVG = function (svg, width, height, update = true) {
 
-    if (svg == undefined) {
-        return fastD3._svg;
-    } else {
-        fastD3.width = width || svg.width.baseVal.value;
-        fastD3.height = height || svg.height.baseVal.value;
-        return fastD3._svg = svg;
+    if (svg != undefined) {
+        this.width = width || svg.width.baseVal.value;
+        this.height = height || svg.height.baseVal.value;
+        this._svg = svg;
     }
+
+    if (update) {
+        // bug: resize未被调用
+        // 需要将修改应用到正式场合，
+        // 如：记录所有的图表、setInfo接口、修改创建表格的变量名称、将fastD3下所有的箭头函数改为正式函数
+        d3.select(this._svg).on('resize', function () {
+            let w = this._svg.width.baseVal.value;
+            let h = this._svg.height.baseVal.value;
+            this.setInfo(w, h);
+            console.log('change')
+        });
+    }
+    return this._svg;
 };
 
-fastD3.cData = function(width, height) {
+fastD3.setInfo = function(width = this.width, height = this.height) {
     this.width = width;
     this.height = height;
+    this._chartArr.forEach(d=>{
+        d.cData(d.data, d.param);
+    });
     return this;
 }
 
@@ -237,20 +251,22 @@ fastD3.text = function (data, param) {
     colRoot.append('text').attr('class', 'fastD3TextRoot')
             .attr('style', `dominant-baseline:middle;text-anchor:start;mask:url(#${oid}mask)`);
     // 结构处理
-    let aColum = {
+    let aText = {
         ...Chart
     };
-    aColum._id = oid;
-    aColum.data = data;
-    aColum.cData = function (_data) {
+    aText ._id = oid;
+    aText .data = data;
+    aText .cData = function (_data) {
         param.cData(_data, this);
     };
-    aColum.param = param;
-    aColum.d3r = colRoot;
+    aText .param = param;
+    aText .d3r = colRoot;
 
-    param.cData(data, aColum); // 延后绘制
+    this._chartArr.push(aText);
 
-    return aColum;
+    param.cData(data, aText ); // 延后绘制
+
+    return aText ;
 }
 
 /**
@@ -564,7 +580,7 @@ fastD3.pieDefault = {
     },
 }
 
-fastD3.pie = (data, param = fastD3.pieDefault) => {
+fastD3.pie = function (data, param = fastD3.pieDefault) {
 
     if (!fastD3.check()) {
         console.error(fastD3.error());
@@ -590,6 +606,8 @@ fastD3.pie = (data, param = fastD3.pieDefault) => {
     aPie.param = param;
     aPie.d3r = pieRoot;
 
+    this._chartArr.push(aPie);
+
     param.cData(data, aPie); // 延后绘制
 
     return aPie;
@@ -604,7 +622,7 @@ fastD3.histogramDefault = {
  * @param {Array} data 数据源
  * @param {Array} param 配置参数
  */
-fastD3.histogram = (data, param = fastD3.histogramDefault) => {
+fastD3.histogram = function (data, param = fastD3.histogramDefault) {
 
     if (!fastD3.check()) {
         console.error(fastD3.error())
@@ -888,7 +906,7 @@ fastD3.columnDefault = {
     },
 }
 
-fastD3.column = (data, param = fastD3.columnDefault) => {
+fastD3.column = function (data, param = fastD3.columnDefault) {
 
     if (!fastD3.check()) {
         console.error(fastD3.error());
@@ -913,6 +931,8 @@ fastD3.column = (data, param = fastD3.columnDefault) => {
     };
     aColum.param = param;
     aColum.d3r = colRoot;
+
+    this._chartArr.push(aColum);
 
     param.cData(data, aColum); // 延后绘制
 

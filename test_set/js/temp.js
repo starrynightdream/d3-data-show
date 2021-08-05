@@ -1,7 +1,5 @@
 window.onload = () =>{
     const svg = document.getElementById('target');
-    svg.setAttribute('width', document.body.offsetWidth);
-    svg.setAttribute('height', 500);
 
     fastD3.SVG(svg);
 
@@ -36,7 +34,7 @@ window.onload = () =>{
     param3.fontColor = 'white';
     param3.xOffset = 0.5;
     param3.yOffset = 0.25;
-    let text = fastD3.text('show', param3);
+    let text = fastD3.text(['show'], param3);
 
     setTimeout(() => {
         let d = getData();
@@ -59,7 +57,6 @@ window.onload = () =>{
         });
         d[1].value = 20;
 
-        fastD3.cData(500, 500);
         his.cData(d);
         col.cData(d);
         text.cData('123')
