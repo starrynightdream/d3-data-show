@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-05 00:37:18
+ * @Last Modified time: 2021-08-05 10:56:36
  */
 // 前置依赖是d3.js 请在使用前导入。
 // todo: 添加一个快速放置文字的接口。
@@ -104,12 +104,12 @@ fastD3.textDefault = {
             linCount = data.length;
         } else if (typeof data === 'string'){
             // 单个字符串
-            data = [data];
             numCount = data.length;
             linCount = 1;
+            data = [data];
         } else {
             data = [data + ''];
-            numCount = data.length;
+            numCount = data[0].length;
             linCount = 1;
         }
 
@@ -117,14 +117,14 @@ fastD3.textDefault = {
         let height = 0;
         if (this.widthPercent < 0) {
             // 计算需要的宽度
-            width = this.fontSize * numCount;
+            width = this.fontSize  * numCount;
         } else {
             width = fastD3.width * this.widthPercent;
         }
 
         if (this.heightPercent < 0) {
             // 计算需要的宽度
-            height = this.lineHeight * linCount;
+            height = (this.lineHeight + this.fontSize) * linCount;
         } else {
             height = fastD3.height * this.heightPercent;
         }
@@ -156,7 +156,7 @@ fastD3.textDefault = {
         let that = this;
         // 处理变化后的新数据
         let [width, height, formData, xoff, yoff, uniform] = this.formData(data);
-        let mr = chart.d3r.select(`${chart._id}mask`).select('rect')
+        let mr = chart.d3r.select(`#${chart._id}mask`).select('rect')
             .attr('width', width)
             .attr('height', height)
             .attr('x', xoff)
@@ -185,16 +185,11 @@ fastD3.textDefault = {
             })
             .exit();
 
-        // todo: 删除的移动以及遮罩的实现
-        delG
-            .attr('x', d=>{return d.x;})
-            .transition(this.changeDuration)
-            .ease(this.changeType)
-            .attr('x', d=>{return d.x + d.width;})
 
         delG
             .transition(this.changeDuration)
             .ease(this.changeType)
+            .attr('x', d=>{return d.x + d.width;})
             .remove();
 
 
@@ -228,11 +223,12 @@ fastD3.text = function (data, param) {
     let colRoot = d3.select(fastD3._svg).append('g');
     let oid = fastD3.onlyId();
     colRoot.attr('id', oid);
-    colRoot.append('text').attr('class', 'fastD3TextRoot')
-            .attr('style', 'dominant-baseline:middle;text-anchor:start;');
     colRoot.append('defs').append('mask')
         .attr('id', `${oid}mask`)
-        .append('rect');
+        .append('rect')
+        .attr('fill', '#ffffff');
+    colRoot.append('text').attr('class', 'fastD3TextRoot')
+            .attr('style', `dominant-baseline:middle;text-anchor:start;mask:url(#${oid}mask)`);
     // 结构处理
     let aColum = {
         ...Chart

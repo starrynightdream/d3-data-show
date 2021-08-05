@@ -65,6 +65,7 @@ window.onload = () =>{
     setTimeout(() => {
         his.cData([]);
         col.cData([]);
+        text.cData(['456', '123'])
     }, 3000);
 
 
