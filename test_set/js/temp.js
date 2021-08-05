@@ -34,6 +34,8 @@ window.onload = () =>{
 
     let param3 = {...fastD3.textDefault}
     param3.fontColor = 'white';
+    param3.xOffset = 0.5;
+    param3.yOffset = 0.25;
     let text = fastD3.text('show', param3);
 
     setTimeout(() => {

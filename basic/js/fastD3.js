@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-05 10:56:36
+ * @Last Modified time: 2021-08-05 11:26:15
  */
 // 前置依赖是d3.js 请在使用前导入。
 // todo: 添加一个快速放置文字的接口。
@@ -139,8 +139,8 @@ fastD3.textDefault = {
 
             formData.push({
                 text: _d,
-                x: this.fontLeft,
-                y: i * this.lineHeight,
+                x: this.fontLeft + xoff,
+                y: i * this.lineHeight + yoff,
                 width: _d.length * (this.fontSize + 1),
             });
         });
@@ -156,7 +156,7 @@ fastD3.textDefault = {
         let that = this;
         // 处理变化后的新数据
         let [width, height, formData, xoff, yoff, uniform] = this.formData(data);
-        let mr = chart.d3r.select(`#${chart._id}mask`).select('rect')
+        chart.d3r.select(`#${chart._id}mask`).select('rect')
             .attr('width', width)
             .attr('height', height)
             .attr('x', xoff)
