@@ -2,23 +2,25 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-05 22:17:03
+ * @Last Modified time: 2021-08-06 11:16:59
  */
 // 前置依赖是d3.js 请在使用前导入。
 
 const fastD3 = {
     _svg: null,
+    _rKey: '0xb1PB=uznlKyIRWE7eQd2f3+4gU.tJmwL5jYCMOaSVoH/8FT_,/Gic’vNZ;k9D6AXsrh*-qp',
     _errStack: [],
     _chartArr: [],
     error() {},
     width: 0,
     height: 0,
-    SVG(svg) {},
+    SVG(svg) {svg},
     check() {},
     id: 1,
     onlyId() {},
     _formPercent() {},
     _arcDraw() {},
+    strToNum(str) {str},
 };
 
 // 图表类模板
@@ -54,15 +56,12 @@ fastD3.SVG = function (svg, width, height, update = true) {
     }
 
     if (update) {
-        // bug: resize未被调用
-        // 需要将修改应用到正式场合，
-        // 如：记录所有的图表、setInfo接口、修改创建表格的变量名称、将fastD3下所有的箭头函数改为正式函数
-        d3.select(this._svg).on('resize', function () {
-            let w = this._svg.width.baseVal.value;
-            let h = this._svg.height.baseVal.value;
-            this.setInfo(w, h);
-            console.log('change')
-        });
+        let that = this;
+        window.onresize = function () {
+            let w = that._svg.width.baseVal.value;
+            let h = that._svg.height.baseVal.value;
+            that.setInfo(w, h);
+        }
     }
     return this._svg;
 };
@@ -91,6 +90,21 @@ fastD3.check = function () {
 
 fastD3.onlyId = function () {
     return `chart${this.id++}`;
+}
+
+fastD3.strToNum = function (str) {
+    str = encodeURI(str).split('%');
+    let num = 0;
+    for (let s of str) {
+        // 计算
+        let aBit = 0;
+        for (let c of s){
+            aBit *= 100;
+            aBit += this._rKey.indexOf(c);
+        }
+        num += aBit;
+    }
+    return num;
 }
 
 fastD3.textDefault = {
@@ -349,7 +363,7 @@ fastD3.pieDefault = {
         return 'black';
     },
     color(d, i, arr) {
-        return `hsl(${i/arr.length * 360}, 100%, 80%)`;
+        return `hsl(${fastD3.strToNum(d.name) % 359}, 100%, 80%)`;
     },
     setText: (d) => {
         return d.name;
@@ -444,9 +458,7 @@ fastD3.pieDefault = {
             .attr('transform', (d) => {
                 return `rotate(${-d.start * 360})`;
             })
-            .attr('fill', (d, i, arr) => {
-                return this.color(d, i, arr);
-            });
+            .attr('fill', that.color);
 
         let mid = (uniform.outer + uniform.inner) / 2;
         let tr = mid;
@@ -455,9 +467,7 @@ fastD3.pieDefault = {
                 return d.text;
             })
             .attr('font-size', 0)
-            .attr('fill', (d, i, arr) => {
-                return this.fontColor(d, i, arr);
-            })
+            .attr('fill', this.fontColor)
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;')
             .attr('transform', 'translate(0,0)')
             .transition(this.changeDuration)
@@ -561,6 +571,7 @@ fastD3.pieDefault = {
                 selfSelector.select('text')
                     .transition(that.changeDuration)
                     .ease(that.changeType)
+                    .attr('font-size', that.fontSize)
                     .attr('transform', (d) => {
                         let ang = Math.PI * (d.start + d.end);
                         if (d.end - d.start < pull) {
@@ -663,7 +674,7 @@ fastD3.columnDefault = {
         return 'black';
     },
     color(d, i, arr) {
-        return `hsl(${i/arr.length * 360}, 100%, 80%)`;
+        return `hsl(${fastD3.strToNum(d.name) % 359}, 100%, 80%)`;
     },
     cName(name) {
         return name;
@@ -756,9 +767,7 @@ fastD3.columnDefault = {
                 return d.y + d.height + this.lineHeight;
             })
             .attr('font-size', this.fontSize)
-            .attr('fill', (d, i, arr) => {
-                return this.fontColor(d, i, arr);
-            })
+            .attr('fill', that.fontColor)
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
         addG.append('g').append('text')
@@ -778,9 +787,7 @@ fastD3.columnDefault = {
             .attr('y', d => {
                 return d.y - that.lineHeight;
             })
-            .attr('fill', (d, i, arr) => {
-                return this.fontColor(d, i, arr);
-            })
+            .attr('fill', that.fontColor)
             .attr('style', 'dominant-baseline:middle;text-anchor:middle;');
 
         let rects = addG.append('rect')
@@ -794,9 +801,7 @@ fastD3.columnDefault = {
             .attr('y', d => {
                 return d.height + d.y;
             })
-            .attr('fill', (d, i, arr) => {
-                return this.color(d, i, arr);
-            });
+            .attr('fill', that.color);
 
         for (let key of Object.keys(this.rectReadyInit)) {
             rects.attr(key, this.rectReadyInit[key]);
