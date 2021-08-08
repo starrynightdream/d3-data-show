@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-08 11:29:35
+ * @Last Modified time: 2021-08-08 11:54:43
  */
 // 前置依赖是d3.js 请在使用前导入。
 
@@ -702,6 +702,16 @@ fastD3.columnDefault = {
     cValue(value) {
         return value;
     },
+    createBaseLine(width, height, xoff, yoff, n) {
+        let baseLine = '';
+        let _w = width / n;
+        for (let i =0; i<n; ++i) {
+            baseLine += `L${xoff + _w * i} ${yoff + height} `;
+        }
+        baseLine += `L${xoff + width} ${yoff + height}`;
+        baseLine = baseLine.replace('L', 'M');
+        return baseLine;
+    },
     formData(data) {
         let that = this;
         let width = fastD3.width * this.widthPercent;
@@ -903,7 +913,7 @@ fastD3.columnDefault = {
         });
 
         let line = chart.d3r.select('path');
-        let _d = line.attr('d') || `M${xoff} ${yoff + height} L${xoff + width} ${yoff + height}`;
+        let _d = line.attr('d') || '';
         line.remove();
         line = chart.d3r.append('path');
 
@@ -915,9 +925,11 @@ fastD3.columnDefault = {
             });
 
             nPath = nPath.replace('L', 'M');
-            if (nPath == '') {
-                nPath = `M${xoff} ${yoff + height} L${xoff + width} ${yoff + height}`;
-            }
+            let baseLine = this.createBaseLine(width, height, xoff, yoff, 
+                Math.max(formData.length, _d.split('L').length));
+
+            _d = _d || baseLine;
+            nPath = nPath || baseLine;
         }
         line
             .attr('d', _d)
@@ -999,6 +1011,16 @@ fastD3.linesDefault = {
     },
     cValue(value) {
         return value;
+    },
+    createBaseLine(width, height, xoff, yoff, n) {
+        let baseLine = '';
+        let _w = width / n;
+        for (let i =0; i<n; ++i) {
+            baseLine += `L${xoff + _w * i} ${yoff + height} `;
+        }
+        baseLine += `L${xoff + width} ${yoff + height}`;
+        baseLine = baseLine.replace('L', 'M');
+        return baseLine;
     },
     formData(data) {
         let that = this;
@@ -1204,11 +1226,13 @@ fastD3.linesDefault = {
             nPath += `L${d.x} ${d.y} `;
         });
 
-        let baseLine = `M${xoff} ${yoff + height} L${xoff + width} ${yoff + height}`
         nPath = nPath.replace('L', 'M');
-        nPath = nPath || baseLine;
         let line = chart.d3r.select('path');
-        let _d = line.attr('d') || baseLine;
+        let _d = line.attr('d') || '';
+        let baseLine = this.createBaseLine(width, height, xoff, yoff,
+            Math.max(formData.length, _d.split('L').length));
+        nPath = nPath || baseLine;
+        _d = _d || baseLine;
         line.remove();
         line = chart.d3r.append('path');
 

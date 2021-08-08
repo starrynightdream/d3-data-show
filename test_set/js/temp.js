@@ -25,7 +25,7 @@ window.onload = () =>{
     param2.yOffset = 0.25;
     param2.fontSize = 10;
     param2.lineHeight = 10;
-    param2.needLine = false;
+    param2.needLine = true;
     param2.fontColor = (d, i, arr) =>{
         return `white`;
     }
