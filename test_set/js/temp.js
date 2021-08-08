@@ -4,9 +4,9 @@ window.onload = () =>{
     fastD3.SVG(svg);
 
     let param = {...fastD3.pieDefault};
-    param.widthPercent = 0.5
-    param.heightPercent = 0.5
-    param.xOffset = 0.5;
+    param.widthPercent = 0.25
+    param.heightPercent = 0.25
+    param.xOffset = 0.25;
     param.yOffset = 0.25;
     param.fontSize = 10;
     param.lineHeight = 10;
@@ -19,8 +19,8 @@ window.onload = () =>{
     let his = fastD3.pie(getData(), param);
 
     let param2 = {...fastD3.columnDefault};
-    param2.widthPercent = 0.5
-    param2.heightPercent = 0.5
+    param2.widthPercent = 0.25
+    param2.heightPercent = 0.25
     param2.xOffset = 0;
     param2.yOffset = 0.25;
     param2.fontSize = 10;
@@ -30,11 +30,18 @@ window.onload = () =>{
     }
     let col = fastD3.column(getData(), param2);
 
-    let param3 = {...fastD3.textDefault}
-    param3.fontColor = 'white';
+    let param3 = {...fastD3.linesDefault};
+    param3.widthPercent = 0.25
+    param3.heightPercent = 0.25
     param3.xOffset = 0.5;
     param3.yOffset = 0.25;
-    let text = fastD3.text(['show'], param3);
+    param3.fontSize = 10;
+    param3.lineHeight = 10;
+    param3.fontColor = (d, i, arr) =>{
+        return `white`;
+    }
+    param3.sort = (a,b)=>{return b.value - a.value;}
+    let lines = fastD3.lines(getData(), param3);
 
     setTimeout(() => {
         let d = getData();
@@ -59,13 +66,13 @@ window.onload = () =>{
 
         his.cData(d);
         col.cData(d);
-        text.cData('123')
+        lines.cData(d);
     }, 2000);
 
     setTimeout(() => {
-        // his.cData([]);
-        // col.cData([]);
-        text.cData(['456', '123'])
+        his.cData([]);
+        col.cData([]);
+        lines.cData([]);
     }, 3000);
 
 
