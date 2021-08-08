@@ -2,7 +2,7 @@
  * @Author: SND 
  * @Date: 2021-07-27 17:33:38 
  * @Last Modified by: SND
- * @Last Modified time: 2021-08-08 10:44:09
+ * @Last Modified time: 2021-08-08 11:29:35
  */
 // 前置依赖是d3.js 请在使用前导入。
 
@@ -902,17 +902,23 @@ fastD3.columnDefault = {
             }
         });
 
-        let nPath = '';
-        formData.forEach((d) => {
-            nPath += `L${d.x + d.width/2} ${d.y} `;
-        });
-
-        nPath = nPath.replace('L', 'M');
         let line = chart.d3r.select('path');
-        let _d = line.attr('d');
+        let _d = line.attr('d') || `M${xoff} ${yoff + height} L${xoff + width} ${yoff + height}`;
         line.remove();
         line = chart.d3r.append('path');
 
+        let nPath = ``;
+        if (this.needLine) {
+            nPath = '';
+            formData.forEach((d) => {
+                nPath += `L${d.x + d.width/2} ${d.y} `;
+            });
+
+            nPath = nPath.replace('L', 'M');
+            if (nPath == '') {
+                nPath = `M${xoff} ${yoff + height} L${xoff + width} ${yoff + height}`;
+            }
+        }
         line
             .attr('d', _d)
             .transition(this.changeDuration + 10)
@@ -923,7 +929,6 @@ fastD3.columnDefault = {
             .attr('stroke', 'white');
 
         line.text('reflesh');
-
         // 处理结构
         chart.data = data;
         chart.param = this;
@@ -1199,9 +1204,11 @@ fastD3.linesDefault = {
             nPath += `L${d.x} ${d.y} `;
         });
 
+        let baseLine = `M${xoff} ${yoff + height} L${xoff + width} ${yoff + height}`
         nPath = nPath.replace('L', 'M');
+        nPath = nPath || baseLine;
         let line = chart.d3r.select('path');
-        let _d = line.attr('d');
+        let _d = line.attr('d') || baseLine;
         line.remove();
         line = chart.d3r.append('path');
 

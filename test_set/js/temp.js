@@ -25,6 +25,7 @@ window.onload = () =>{
     param2.yOffset = 0.25;
     param2.fontSize = 10;
     param2.lineHeight = 10;
+    param2.needLine = false;
     param2.fontColor = (d, i, arr) =>{
         return `white`;
     }
@@ -40,7 +41,7 @@ window.onload = () =>{
     param3.fontColor = (d, i, arr) =>{
         return `white`;
     }
-    param3.sort = (a,b)=>{return b.value - a.value;}
+    // param3.sort = (a,b)=>{return b.value - a.value;}
     let lines = fastD3.lines(getData(), param3);
 
     setTimeout(() => {
@@ -82,21 +83,21 @@ window.onload = () =>{
 function getData() {
     return [{
         name: 'APath',
-        value: 6
+        value: 46
     }, {
         name: 'BPath',
-        value: 5
+        value: 51
     }, {
         name: 'CPath',
         value: 4
     }, {
         name: 'DPath',
-        value: 3
+        value: 23
     }, {
         name: 'EPath',
-        value: 2
+        value: 27
     }, {
         name: 'FPath',
-        value: 1
+        value: 11
     }];
 }
